@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c9dd5c50e0584bbca3b8554668f230e, type: 3}
+  m_Name: Effect_Telephone_Band
+  m_EditorClassIdentifier: 
+  kind: 1
+  displayName: Telephone Band
+  category: Parametric EQ
+  description: Narrow mid-band EQ
+  json: "{\n    \"uid\": \"90c177026be4\",\n    \"typeId\": \"eq\",\n    \"enabled\":
+    true,\n    \"bypass\": false,\n    \"values\": [\n        400.0,\n        -18.0,\n       
+    1500.0,\n        6.0,\n        1.0,\n        3000.0,\n        0.0,\n        1.0,\n       
+    3500.0,\n        -18.0\n    ],\n    \"expanded\": true\n}"

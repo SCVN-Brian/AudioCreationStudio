@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c9dd5c50e0584bbca3b8554668f230e, type: 3}
+  m_Name: Generator_gmedium_dog_barking_twice,_close_mic,_dry_20261106_010258
+  m_EditorClassIdentifier: 
+  kind: 0
+  displayName: gmedium_dog_barking_twice,_close_mic,_dry_20261106_010258
+  category: Generators
+  description: 
+  json: "{\n    \"presetName\": \"gmedium_dog_barking_twice,_close_mic,_dry_20261106_010258\",\n   
+    \"seed\": 1,\n    \"waveform\": 6,\n    \"frequency\": 440.0,\n    \"dutyCycle\":
+    0.5,\n    \"subOscMix\": 0.0,\n    \"durationSeconds\": 4.0,\n    \"volumeDb\":
+    0.0,\n    \"sampleGuid\": \"859057623ad3345be8e2eeb2104d6c8a\",\n    \"sampleName\":
+    \"gmedium_dog_barking_twice,_close_mic,_dry_20261106_010258\",\n    \"sampleStart\":
+    0.0,\n    \"oneShot\": false,\n    \"attack\": 0.0005000000237487257,\n    \"decay\":
+    0.0010000000474974514,\n    \"sustain\": 1.0,\n    \"release\": 0.004999999888241291,\n   
+    \"pitchStart\": 0.0,\n    \"pitchEnd\": 0.0,\n    \"pitchSweepTime\": 0.20000000298023225,\n   
+    \"pitchCurve\": 1.0,\n    \"pitchJump\": 0.0,\n    \"pitchJumpTime\": 0.10000000149011612,\n   
+    \"vibratoRate\": 0.0,\n    \"vibratoDepth\": 0.0,\n    \"noiseMix\": 0.0,\n   
+    \"noiseColor\": 0,\n    \"noiseFm\": 3.3000001907348635,\n    \"tremoloRate\":
+    16.0,\n    \"tremoloDepth\": 0.375,\n    \"filterType\": 3,\n    \"filterCutoff\":
+    4000.0,\n    \"filterResonance\": 0.7070000171661377,\n    \"filterEnvOctaves\":
+    0.0,\n    \"filterLfoRate\": 0.0,\n    \"filterLfoOctaves\": 0.0,\n    \"drive\":
+    0.32499998807907107\n}"

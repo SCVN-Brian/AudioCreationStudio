@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c9dd5c50e0584bbca3b8554668f230e, type: 3}
+  m_Name: EffectChain_Clean_UI_Space
+  m_EditorClassIdentifier: 
+  kind: 2
+  displayName: Clean UI Space
+  category: Effect Chains
+  description: Thin lows, air, small room
+  json: "{\n    \"effects\": [\n        {\n            \"uid\": \"a36ff6df6390\",\n           
+    \"typeId\": \"eq\",\n            \"enabled\": true,\n            \"bypass\":
+    false,\n            \"values\": [\n                120.0,\n                -6.0,\n               
+    500.0,\n                0.0,\n                1.0,\n                3000.0,\n               
+    0.0,\n                1.0,\n                8000.0,\n                3.0\n           
+    ],\n            \"expanded\": true\n        },\n        {\n            \"uid\":
+    \"0e2ed2f8ebbb\",\n            \"typeId\": \"reverb\",\n            \"enabled\":
+    true,\n            \"bypass\": false,\n            \"values\": [\n               
+    0.25,\n                0.44999998807907107,\n                1.0,\n               
+    10.0,\n                0.11999999731779099\n            ],\n            \"expanded\":
+    true\n        }\n    ]\n}"

@@ -1,0 +1,350 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc436a6c0546f44f796e0ab5cf79e6c7, type: 3}
+  m_Name: Demo_DogBark_Matched
+  m_EditorClassIdentifier: 
+  formatVersion: 1
+  data:
+    name: Dog Bark (matched)
+    sampleRate: 48000
+    channels: 2
+    masterGainDb: 0
+    masterEffects:
+    - uid: 76ecb064360c
+      typeId: reverb
+      enabled: 1
+      bypass: 0
+      values:
+      - 0.25
+      - 0.45
+      - 1
+      - 10
+      - 0.08
+      expanded: 1
+    - uid: d1cb66b2373f
+      typeId: limiter
+      enabled: 1
+      bypass: 0
+      values:
+      - -1
+      - 0
+      - 60
+      expanded: 1
+    tracks:
+    - uid: 01a5bfb98a33
+      name: Synth Bark
+      color: {r: 0.35686275, g: 0.6156863, b: 1, a: 1}
+      gainDb: 0
+      pan: 0
+      mute: 0
+      solo: 0
+      clips:
+      - uid: 1c1d8040d1b9
+        name: Bark 1
+        sourceKind: 1
+        sourceClip: {fileID: 0}
+        generator:
+          presetName: Dog Bark
+          seed: 11
+          waveform: 3
+          frequency: 560
+          dutyCycle: 0.5
+          subOscMix: 0
+          durationSeconds: 0.21
+          volumeDb: -4
+          oneShot: 0
+          attack: 0.015
+          decay: 0.05
+          sustain: 0.65
+          release: 0.07
+          pitchStart: -1
+          pitchEnd: -6
+          pitchSweepTime: 0.2
+          pitchCurve: 1.2
+          pitchJump: 0
+          pitchJumpTime: 0.1
+          vibratoRate: 2.5
+          vibratoDepth: 6.5
+          noiseMix: 0.06
+          noiseColor: 1
+          noiseFm: 1
+          tremoloRate: 0
+          tremoloDepth: 0
+          filterType: 1
+          filterCutoff: 950
+          filterResonance: 2.6
+          filterEnvOctaves: 0.6
+          filterLfoRate: 0
+          filterLfoOctaves: 0
+          drive: 0.18
+        sourceSampleRate: 48000
+        sourceFrames: 10080
+        sourceChannels: 1
+        startSample: 8160
+        sourceOffset: 0
+        lengthSamples: 10080
+        gainDb: 0
+        pan: 0
+        playbackRate: 1
+        fadeIn:
+          lengthSamples: 0
+          curve: 1
+        fadeOut:
+          lengthSamples: 0
+          curve: 1
+        loop: 0
+        enabled: 1
+        automation: []
+      - uid: 3a3f8cd3a9a7
+        name: Bark 2
+        sourceKind: 1
+        sourceClip: {fileID: 0}
+        generator:
+          presetName: Dog Bark
+          seed: 12
+          waveform: 3
+          frequency: 545
+          dutyCycle: 0.5
+          subOscMix: 0
+          durationSeconds: 0.21
+          volumeDb: -4
+          oneShot: 0
+          attack: 0.015
+          decay: 0.05
+          sustain: 0.65
+          release: 0.07
+          pitchStart: -1
+          pitchEnd: -6
+          pitchSweepTime: 0.2
+          pitchCurve: 1.2
+          pitchJump: 0
+          pitchJumpTime: 0.1
+          vibratoRate: 2.5
+          vibratoDepth: 7
+          noiseMix: 0.06
+          noiseColor: 1
+          noiseFm: 1
+          tremoloRate: 0
+          tremoloDepth: 0
+          filterType: 1
+          filterCutoff: 950
+          filterResonance: 2.6
+          filterEnvOctaves: 0.6
+          filterLfoRate: 0
+          filterLfoOctaves: 0
+          drive: 0.18
+        sourceSampleRate: 48000
+        sourceFrames: 10080
+        sourceChannels: 1
+        startSample: 56160
+        sourceOffset: 0
+        lengthSamples: 10080
+        gainDb: 0
+        pan: 0
+        playbackRate: 1
+        fadeIn:
+          lengthSamples: 0
+          curve: 1
+        fadeOut:
+          lengthSamples: 0
+          curve: 1
+        loop: 0
+        enabled: 1
+        automation: []
+      - uid: f667f87d3e81
+        name: Bark 3
+        sourceKind: 1
+        sourceClip: {fileID: 0}
+        generator:
+          presetName: Dog Bark
+          seed: 13
+          waveform: 3
+          frequency: 570
+          dutyCycle: 0.5
+          subOscMix: 0
+          durationSeconds: 0.21
+          volumeDb: -4
+          oneShot: 0
+          attack: 0.015
+          decay: 0.05
+          sustain: 0.65
+          release: 0.07
+          pitchStart: -1
+          pitchEnd: -6
+          pitchSweepTime: 0.2
+          pitchCurve: 1.2
+          pitchJump: 0
+          pitchJumpTime: 0.1
+          vibratoRate: 2.5
+          vibratoDepth: 6
+          noiseMix: 0.06
+          noiseColor: 1
+          noiseFm: 1
+          tremoloRate: 0
+          tremoloDepth: 0
+          filterType: 1
+          filterCutoff: 950
+          filterResonance: 2.6
+          filterEnvOctaves: 0.6
+          filterLfoRate: 0
+          filterLfoOctaves: 0
+          drive: 0.18
+        sourceSampleRate: 48000
+        sourceFrames: 10080
+        sourceChannels: 1
+        startSample: 90240
+        sourceOffset: 0
+        lengthSamples: 10080
+        gainDb: 0
+        pan: 0
+        playbackRate: 1
+        fadeIn:
+          lengthSamples: 0
+          curve: 1
+        fadeOut:
+          lengthSamples: 0
+          curve: 1
+        loop: 0
+        enabled: 1
+        automation: []
+      effects:
+      - uid: e1d9dcf9f37b
+        typeId: lowpass
+        enabled: 1
+        bypass: 0
+        values:
+        - 2000
+        - 0.7
+        expanded: 1
+      - uid: ef49c16dede8
+        typeId: eq
+        enabled: 1
+        bypass: 0
+        values:
+        - 300
+        - -6
+        - 500
+        - 0
+        - 1
+        - 3000
+        - 0
+        - 1
+        - 3500
+        - -8
+        expanded: 1
+      automation: []
+      showAutomation: 0
+      automationTarget: gain
+    - uid: c04cd097eea1
+      name: Reference (real dog, CC BY-SA)
+      color: {r: 0.25882354, g: 0.7882353, b: 0.627451, a: 1}
+      gainDb: 0
+      pan: 0
+      mute: 1
+      solo: 0
+      clips:
+      - uid: 18059e10310c
+        name: 
+        sourceKind: 0
+        sourceClip: {fileID: 8300000, guid: b74e786f911f0417eb6ce7577d737546, type: 3}
+        generator:
+          presetName: Custom
+          seed: 1
+          waveform: 0
+          frequency: 440
+          dutyCycle: 0.5
+          subOscMix: 0
+          durationSeconds: 0.5
+          volumeDb: -6
+          oneShot: 1
+          attack: 0.005
+          decay: 0.12
+          sustain: 0.5
+          release: 0.2
+          pitchStart: 0
+          pitchEnd: 0
+          pitchSweepTime: 0.2
+          pitchCurve: 1
+          pitchJump: 0
+          pitchJumpTime: 0.1
+          vibratoRate: 0
+          vibratoDepth: 0
+          noiseMix: 0
+          noiseColor: 0
+          noiseFm: 0
+          tremoloRate: 0
+          tremoloDepth: 0
+          filterType: 0
+          filterCutoff: 4000
+          filterResonance: 0.707
+          filterEnvOctaves: 0
+          filterLfoRate: 0
+          filterLfoOctaves: 0
+          drive: 0
+        sourceSampleRate: 44100
+        sourceFrames: 115110
+        sourceChannels: 1
+        startSample: 0
+        sourceOffset: 0
+        lengthSamples: 125289
+        gainDb: -6
+        pan: 0
+        playbackRate: 1
+        fadeIn:
+          lengthSamples: 0
+          curve: 1
+        fadeOut:
+          lengthSamples: 0
+          curve: 1
+        loop: 0
+        enabled: 1
+        automation: []
+      effects: []
+      automation: []
+      showAutomation: 0
+      automationTarget: gain
+    loopRegion:
+      enabled: 0
+      start: 0
+      end: 0
+    loop:
+      source: 0
+      clipUid: 
+      assetClip: {fileID: 0}
+      loopStart: 0
+      loopEnd: 0
+      crossfadeSamples: 2400
+      crossfadeCurve: 1
+      snapToZeroCrossing: 1
+      zeroSearchMs: 5
+    export:
+      format: 0
+      sampleRate: 0
+      channels: 0
+      scope: 0
+      includeTail: 1
+      normalize: 1
+      normalizeTargetDb: -1
+      trimSilence: 0
+      trimThresholdDb: -60
+      dither: 0
+      outputFolder: Assets/AudioCreationStudio/Samples/Demo/Exports
+      fileName: DogBark_Matched
+    variations:
+      count: 5
+      seed: 1234
+      pitchSemitones: 1
+      volumeDb: 1.5
+      startOffsetMs: 0
+      timingJitterMs: 8
+      layerDropProbability: 0
+      effectVariation: 0.1

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c9dd5c50e0584bbca3b8554668f230e, type: 3}
+  m_Name: ExportSettings_Game_SFX_44.1k_16-bit_(normalized)
+  m_EditorClassIdentifier: 
+  kind: 4
+  displayName: Game SFX 44.1k 16-bit (normalized)
+  category: Export
+  description: "44.1 kHz \xB7 16-bit \xB7 normalize \u22121 dBFS \xB7 trim silence"
+  json: "{\n    \"format\": 0,\n    \"sampleRate\": 44100,\n    \"channels\": 0,\n   
+    \"scope\": 0,\n    \"includeTail\": true,\n    \"normalize\": true,\n    \"normalizeTargetDb\":
+    -1.0,\n    \"trimSilence\": true,\n    \"trimThresholdDb\": -60.0,\n    \"dither\":
+    false,\n    \"outputFolder\": \"Assets/AudioCreationStudio/Exports\",\n    \"fileName\":
+    \"\"\n}"

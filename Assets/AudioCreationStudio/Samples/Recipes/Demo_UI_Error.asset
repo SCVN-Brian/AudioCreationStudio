@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc436a6c0546f44f796e0ab5cf79e6c7, type: 3}
+  m_Name: Demo_UI_Error
+  m_EditorClassIdentifier: 
+  formatVersion: 1
+  data:
+    name: UI Error
+    sampleRate: 48000
+    channels: 2
+    masterGainDb: 0
+    masterEffects:
+    - uid: 992c27017254
+      typeId: limiter
+      enabled: 1
+      bypass: 0
+      values:
+      - -1
+      - 0
+      - 60
+      expanded: 1
+    tracks:
+    - uid: ccb40fd8a033
+      name: UI Error
+      color: {r: 0.35686275, g: 0.6156863, b: 1, a: 1}
+      gainDb: 0
+      pan: 0
+      mute: 0
+      solo: 0
+      clips:
+      - uid: 3938300a6895
+        name: UI Error
+        sourceKind: 1
+        sourceClip: {fileID: 0}
+        generator:
+          presetName: UI Error
+          seed: 3
+          waveform: 1
+          frequency: 233
+          dutyCycle: 0.5
+          subOscMix: 0
+          durationSeconds: 0.34
+          volumeDb: -14
+          oneShot: 0
+          attack: 0.002
+          decay: 0.05
+          sustain: 0.8
+          release: 0.08
+          pitchStart: 0
+          pitchEnd: 0
+          pitchSweepTime: 0.2
+          pitchCurve: 1
+          pitchJump: -4
+          pitchJumpTime: 0.16
+          vibratoRate: 0
+          vibratoDepth: 0
+          noiseMix: 0
+          noiseColor: 0
+          noiseFm: 0
+          tremoloRate: 12
+          tremoloDepth: 1
+          filterType: 1
+          filterCutoff: 1800
+          filterResonance: 0.707
+          filterEnvOctaves: 0
+          filterLfoRate: 0
+          filterLfoOctaves: 0
+          drive: 0
+        sourceSampleRate: 48000
+        sourceFrames: 16320
+        sourceChannels: 1
+        startSample: 0
+        sourceOffset: 0
+        lengthSamples: 16320
+        gainDb: 0
+        pan: 0
+        playbackRate: 1
+        fadeIn:
+          lengthSamples: 0
+          curve: 1
+        fadeOut:
+          lengthSamples: 0
+          curve: 1
+        loop: 0
+        enabled: 1
+        automation: []
+      effects: []
+      automation: []
+      showAutomation: 0
+      automationTarget: gain
+    loopRegion:
+      enabled: 0
+      start: 0
+      end: 0
+    loop:
+      source: 0
+      clipUid: 
+      assetClip: {fileID: 0}
+      loopStart: 0
+      loopEnd: 0
+      crossfadeSamples: 2400
+      crossfadeCurve: 1
+      snapToZeroCrossing: 1
+      zeroSearchMs: 5
+    export:
+      format: 0
+      sampleRate: 0
+      channels: 0
+      scope: 0
+      includeTail: 1
+      normalize: 1
+      normalizeTargetDb: -1
+      trimSilence: 0
+      trimThresholdDb: -60
+      dither: 0
+      outputFolder: Assets/AudioCreationStudio/Samples/Demo/Exports
+      fileName: UI_Error
+    variations:
+      count: 5
+      seed: 1234
+      pitchSemitones: 1
+      volumeDb: 1.5
+      startOffsetMs: 0
+      timingJitterMs: 8
+      layerDropProbability: 0
+      effectVariation: 0.1

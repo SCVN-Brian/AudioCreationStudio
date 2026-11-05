@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c9dd5c50e0584bbca3b8554668f230e, type: 3}
+  m_Name: EffectChain_Impact_Punch
+  m_EditorClassIdentifier: 
+  kind: 2
+  displayName: Impact Punch
+  category: Effect Chains
+  description: "HP 45 Hz \u2192 Compressor 4:1 \u2192 Limiter"
+  json: "{\n    \"effects\": [\n        {\n            \"uid\": \"883a171113fb\",\n           
+    \"typeId\": \"highpass\",\n            \"enabled\": true,\n            \"bypass\":
+    false,\n            \"values\": [\n                45.0,\n                0.7070000171661377\n           
+    ],\n            \"expanded\": true\n        },\n        {\n            \"uid\":
+    \"d6f2a590cd40\",\n            \"typeId\": \"compressor\",\n            \"enabled\":
+    true,\n            \"bypass\": false,\n            \"values\": [\n               
+    -18.0,\n                4.0,\n                3.0,\n                120.0,\n               
+    6.0,\n                4.0,\n                1.0\n            ],\n           
+    \"expanded\": true\n        },\n        {\n            \"uid\": \"4342decff133\",\n           
+    \"typeId\": \"limiter\",\n            \"enabled\": true,\n            \"bypass\":
+    false,\n            \"values\": [\n                -1.0,\n                0.0,\n               
+    60.0\n            ],\n            \"expanded\": true\n        }\n    ]\n}"

@@ -1,0 +1,7 @@
+Ref_DogBark_Amada44.ogg
+"Barking of a dog" by Amada44, Wikimedia Commons, 2011
+https://commons.wikimedia.org/wiki/File:Barking_of_a_dog.ogg
+License: Creative Commons Attribution-Share Alike 3.0 Unported (CC BY-SA 3.0)
+https://creativecommons.org/licenses/by-sa/3.0/
+Used only as an analysis reference for the AI/assisted sound design workflow. Unmodified.
+Delete this folder if you do not want third-party CC BY-SA material in the project.
