@@ -1,0 +1,18 @@
+{
+  "name": "com.supercent.audiocreationstudio",
+  "version": "1.0.0",
+  "displayName": "Audio Creation Studio",
+  "description": "A Unity-native mini DAW for game sound effects: multitrack editing, mixing, an effects rack, automation, procedural synthesis, seamless loops, variations, presets and WAV export, all inside the Unity Editor.",
+  "unity": "2022.3",
+  "documentationUrl": "https://github.com/SCVN-Brian/AudioCreationStudio",
+  "changelogUrl": "https://github.com/SCVN-Brian/AudioCreationStudio/blob/main/Assets/AudioCreationStudio/CHANGELOG.md",
+  "keywords": ["audio", "sfx", "daw", "editor", "procedural", "wav"],
+  "author": {
+    "name": "Supercent",
+    "url": "https://github.com/SCVN-Brian"
+  },
+  "dependencies": {
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.uielements": "1.0.0"
+  }
+}
