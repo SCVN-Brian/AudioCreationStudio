@@ -47,6 +47,7 @@ namespace AudioCreationStudio.EditorUI
             Progress = 0;
             Status = "Starting…";
             var list = new List<ExportItem>(items);
+            foreach (var it in list) ExportService.ApplyEditorPrefs(it.Options);
             var renderer = new MixRenderer();
             Task.Run(() =>
             {
@@ -109,12 +110,33 @@ namespace AudioCreationStudio.EditorUI
     {
         public const string DefaultFolder = "Assets/AudioCreationStudio/Exports";
 
-        public static string MakePath(string folder, string fileName)
+        private static readonly string[] KnownExtensions = { ".wav", ".aif", ".aiff", ".flac", ".mp3", ".ogg" };
+        private const string FfmpegPrefKey = "AudioCreationStudio.FfmpegPath";
+
+        /// <summary>User-chosen ffmpeg executable (per machine, stored in EditorPrefs). Empty = auto-detect.</summary>
+        public static string FfmpegPath
+        {
+            get => EditorPrefs.GetString(FfmpegPrefKey, "");
+            set => EditorPrefs.SetString(FfmpegPrefKey, value ?? "");
+        }
+
+        /// <summary>The ffmpeg that MP3/OGG export will use, or null when none is installed.</summary>
+        public static string ResolveFfmpeg() => FfmpegEncoder.Locate(FfmpegPath);
+
+        /// <summary>Fills machine-specific options (ffmpeg location) that do not belong in the recipe asset.</summary>
+        public static void ApplyEditorPrefs(ExportOptions o)
+        {
+            if (o != null && string.IsNullOrEmpty(o.FfmpegPath)) o.FfmpegPath = ResolveFfmpeg();
+        }
+
+        public static string MakePath(string folder, string fileName, AudioFileType type = AudioFileType.Wav)
         {
             if (string.IsNullOrWhiteSpace(folder)) folder = DefaultFolder;
             if (string.IsNullOrWhiteSpace(fileName)) fileName = "Sound";
             fileName = PresetStore.MakeSafe(fileName);
-            if (!fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)) fileName += ".wav";
+            foreach (var ext in KnownExtensions)
+                if (fileName.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) { fileName = fileName.Substring(0, fileName.Length - ext.Length); break; }
+            fileName += AudioFormats.Extension(type);
             return System.IO.Path.Combine(folder, fileName).Replace('\\', '/');
         }
 
@@ -174,7 +196,16 @@ namespace AudioCreationStudio.EditorUI
         public static ExportResult ExportBufferInteractive(AudioBuffer buffer, ExportOptions options, string defaultName, string folder = DefaultFolder)
         {
             Directory.CreateDirectory(folder);
-            string path = EditorUtility.SaveFilePanel("Export WAV", folder, PresetStore.MakeSafe(defaultName), "wav");
+            ApplyEditorPrefs(options);
+            if (AudioFormats.IsLossy(options.FileType) && string.IsNullOrEmpty(options.FfmpegPath))
+            {
+                EditorUtility.DisplayDialog("Audio Creation Studio",
+                    $"{AudioFormats.Label(options.FileType)} export needs ffmpeg, which was not found.\n\n" +
+                    "Install it (macOS: brew install ffmpeg · Windows: winget install ffmpeg) or set its path in the Export panel.", "OK");
+                return null;
+            }
+            string ext = AudioFormats.Extension(options.FileType).TrimStart('.');
+            string path = EditorUtility.SaveFilePanel($"Export {AudioFormats.Label(options.FileType)}", folder, PresetStore.MakeSafe(defaultName), ext);
             if (string.IsNullOrEmpty(path)) return null;
             var cts = new CancellationTokenSource();
             try

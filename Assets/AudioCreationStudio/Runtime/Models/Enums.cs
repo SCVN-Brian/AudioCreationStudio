@@ -8,7 +8,11 @@ namespace AudioCreationStudio.Models
 
     public enum AutomationInterpolation { Linear = 0, Smooth = 1, Step = 2 }
 
+    /// <summary>Bit depth for the lossless containers (WAV/AIFF/FLAC). FLAC has no float mode and stores Float32 as 24-bit.</summary>
     public enum WavSampleFormat { Pcm16 = 0, Pcm24 = 1, Float32 = 2 }
+
+    /// <summary>Export container. WAV/AIFF/FLAC are encoded in pure C#; MP3/OGG (Vorbis) are encoded through ffmpeg.</summary>
+    public enum AudioFileType { Wav = 0, Aiff = 1, Flac = 2, Mp3 = 3, Ogg = 4 }
 
     public enum ExportScope { FullMix = 0, SelectedTrack = 1, SelectedClip = 2, LoopRegion = 3 }
 

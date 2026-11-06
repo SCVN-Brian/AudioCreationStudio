@@ -180,7 +180,8 @@ namespace AudioCreationStudio.EditorUI
                 var l = data.loop;
                 mix = SeamlessLoop.Create(mix, l.loopStart, l.loopEnd, (int)l.crossfadeSamples, l.crossfadeCurve);
             }
-            string path = Path.GetFullPath(ExportService.MakePath(data.export.outputFolder, data.export.fileName));
+            string path = Path.GetFullPath(ExportService.MakePath(data.export.outputFolder, data.export.fileName, data.export.fileType));
+            ExportService.ApplyEditorPrefs(opts);
             var r = ExportPipeline.ExportToFile(mix, opts, path);
             ExportService.ImportIfInProject(path);
             return r;

@@ -15,7 +15,10 @@ namespace AudioCreationStudio.Models
     [Serializable]
     public class ExportSettings
     {
+        public AudioFileType fileType = AudioFileType.Wav;
         public WavSampleFormat format = WavSampleFormat.Pcm16;
+        /// <summary>Bitrate for MP3/OGG in kbit/s.</summary>
+        public int lossyBitrateKbps = 192;
         /// <summary>0 = use the recipe sample rate.</summary>
         public int sampleRate;
         /// <summary>0 = use the recipe channel layout.</summary>

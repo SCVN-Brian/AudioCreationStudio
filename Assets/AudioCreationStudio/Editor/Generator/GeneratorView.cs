@@ -128,7 +128,7 @@ namespace AudioCreationStudio.EditorUI
             actions.Add(UIUtil.Spacer());
             actions.Add(new StudioButton(Icon.Save, "Save Preset", SavePreset, "Save these settings to the preset library"));
             actions.Add(new StudioButton(Icon.Plus, "Insert Into Timeline", Insert, "Add as a generator clip at the playhead", "acs-btn--soft"));
-            actions.Add(new StudioButton(Icon.Export, "Export WAV", ExportWav, "Export the generated sound as a WAV file"));
+            actions.Add(new StudioButton(Icon.Export, "Export", ExportWav, "Export the generated sound (format from Export settings: WAV/AIFF/FLAC/MP3/OGG)"));
             center.Add(actions);
             Add(center);
 

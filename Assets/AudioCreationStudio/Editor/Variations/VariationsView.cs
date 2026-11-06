@@ -65,7 +65,7 @@ namespace AudioCreationStudio.EditorUI
             actions.Add(new StudioButton(Icon.Play, "Play Original", () => { if (_original != null) _ctx.Transport.PlayBuffer(_original, false, "Original"); }, "Play the unvaried recipe for comparison"));
             actions.Add(new StudioButton(Icon.Skip, "Play All in Sequence", PlaySequence, "Original, then every variation with short gaps"));
             actions.Add(UIUtil.Spacer());
-            actions.Add(new StudioButton(Icon.Export, "Batch Export WAVs", BatchExport, "Export every variation as a baked WAV file", "acs-btn--soft"));
+            actions.Add(new StudioButton(Icon.Export, "Batch Export", BatchExport, "Export every variation as a baked audio file in the format chosen in Export settings", "acs-btn--soft"));
             main.Add(actions);
             _list = new ScrollView();
             _list.AddToClassList("acs-var__list");
@@ -245,7 +245,7 @@ namespace AudioCreationStudio.EditorUI
             var opts = ExportOptions.From(_ctx.Data.export);
             foreach (var v in _variants)
             {
-                var item = new ExportItem { Path = ExportService.MakePath(folder, v.Recipe.name), Options = opts, Label = v.Recipe.name };
+                var item = new ExportItem { Path = ExportService.MakePath(folder, v.Recipe.name, opts.FileType), Options = opts, Label = v.Recipe.name };
                 if (v.Audio != null) item.Buffer = v.Audio; else item.Job = RenderRequestFactory.Create(v.Recipe, _ctx.Library);
                 items.Add(item);
             }

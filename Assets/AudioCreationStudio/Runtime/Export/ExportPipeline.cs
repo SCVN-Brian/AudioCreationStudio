@@ -6,9 +6,37 @@ using AudioCreationStudio.Models;
 
 namespace AudioCreationStudio.Export
 {
+    public static class AudioFormats
+    {
+        public static string Extension(AudioFileType t)
+        {
+            switch (t)
+            {
+                case AudioFileType.Aiff: return ".aiff";
+                case AudioFileType.Flac: return ".flac";
+                case AudioFileType.Mp3: return ".mp3";
+                case AudioFileType.Ogg: return ".ogg";
+                default: return ".wav";
+            }
+        }
+
+        /// <summary>Lossy formats are encoded by ffmpeg and have no bit-depth/dither setting.</summary>
+        public static bool IsLossy(AudioFileType t) => t == AudioFileType.Mp3 || t == AudioFileType.Ogg;
+
+        /// <summary>Only WAV carries a 'smpl' loop chunk.</summary>
+        public static bool SupportsLoopMetadata(AudioFileType t) => t == AudioFileType.Wav;
+
+        public static string Label(AudioFileType t) => t == AudioFileType.Ogg ? "OGG Vorbis" : t.ToString().ToUpperInvariant();
+    }
+
     public sealed class ExportOptions
     {
+        public AudioFileType FileType = AudioFileType.Wav;
         public WavSampleFormat Format = WavSampleFormat.Pcm16;
+        /// <summary>MP3/OGG bitrate in kbit/s.</summary>
+        public int BitrateKbps = 192;
+        /// <summary>Explicit ffmpeg executable; null searches PATH and common install folders.</summary>
+        public string FfmpegPath;
         /// <summary>0 keeps the source rate.</summary>
         public int SampleRate;
         /// <summary>0 keeps the source channel count.</summary>
@@ -24,16 +52,19 @@ namespace AudioCreationStudio.Export
 
         public static ExportOptions From(ExportSettings s, bool loop = false) => new ExportOptions
         {
-            Format = s.format, SampleRate = s.sampleRate, Channels = s.channels,
+            FileType = s.fileType, Format = s.format, BitrateKbps = s.lossyBitrateKbps > 0 ? s.lossyBitrateKbps : 192,
+            SampleRate = s.sampleRate, Channels = s.channels,
             Normalize = s.normalize, NormalizeTargetDb = s.normalizeTargetDb,
             TrimSilence = s.trimSilence && !loop, TrimThresholdDb = s.trimThresholdDb,
-            Dither = s.dither && s.format == WavSampleFormat.Pcm16, WriteLoopMetadata = loop
+            Dither = s.dither && s.format == WavSampleFormat.Pcm16 && !AudioFormats.IsLossy(s.fileType),
+            WriteLoopMetadata = loop && AudioFormats.SupportsLoopMetadata(s.fileType)
         };
     }
 
     public sealed class ExportResult
     {
         public string Path;
+        public AudioFileType FileType;
         public long Frames;
         public int SampleRate;
         public int Channels;
@@ -43,11 +74,14 @@ namespace AudioCreationStudio.Export
         public int ClippedSamples;
         public bool Validated;
         public long FileBytes;
+        /// <summary>Format adjustments made during encoding (e.g. FLAC float → 24-bit, MP3 resampled to 48 kHz).</summary>
+        public string Note = "";
+        public string FormatLabel => AudioFormats.IsLossy(FileType) ? AudioFormats.Label(FileType) : $"{AudioFormats.Label(FileType)} {Format}";
         public double DurationSeconds => SampleRate > 0 ? (double)Frames / SampleRate : 0;
     }
 
     /// <summary>
-    /// Export: channel conversion → sample-rate conversion → silence trim → normalization → WAV encode.
+    /// Export: channel conversion → sample-rate conversion → silence trim → normalization → encode (WAV/AIFF/FLAC in C#, MP3/OGG via ffmpeg).
     /// Files are written to a temporary sibling and atomically moved into place only after the header
     /// and sample count are validated, so cancellation or errors never leave a corrupted file behind.
     /// </summary>
@@ -87,32 +121,67 @@ namespace AudioCreationStudio.Export
             string tmp = path + ".partial~";
             try
             {
-                using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    WavEncoder.Write(fs, buf, o.Format, o.Dither, o.DitherSeed, loop, ct, progress == null ? null : new SyncProgress(progress));
-                }
+                var sub = progress == null ? null : new SyncProgress(progress);
+                string note = Encode(buf, o, loop, tmp, ct, sub);
                 ct.ThrowIfCancellationRequested();
-
-                WavInfo info;
-                using (var fs = File.OpenRead(tmp)) info = WavDecoder.ReadInfo(fs);
-                bool valid = info.Frames == buf.Frames && info.Channels == buf.Channels && info.SampleRate == buf.SampleRate &&
-                             info.BitsPerSample == WavEncoder.BytesPerSample(o.Format) * 8;
-                if (!valid) throw new IOException("Exported WAV failed validation (header/sample count mismatch).");
 
                 if (File.Exists(path)) File.Delete(path);
                 File.Move(tmp, path);
                 progress?.Report(1f);
                 return new ExportResult
                 {
-                    Path = path, Frames = buf.Frames, SampleRate = buf.SampleRate, Channels = buf.Channels, Format = o.Format,
+                    Path = path, FileType = o.FileType, Frames = buf.Frames, SampleRate = buf.SampleRate, Channels = buf.Channels, Format = o.Format,
                     PeakDb = DspMath.GainToDb(buf.GetPeak()), AppliedGainDb = DspMath.GainToDb(gain),
-                    ClippedSamples = o.Format == WavSampleFormat.Float32 ? 0 : MixRenderer.CountClipped(buf),
-                    Validated = true, FileBytes = new FileInfo(path).Length
+                    ClippedSamples = o.Format == WavSampleFormat.Float32 && (o.FileType == AudioFileType.Wav || o.FileType == AudioFileType.Aiff) ? 0 : MixRenderer.CountClipped(buf),
+                    Validated = true, FileBytes = new FileInfo(path).Length, Note = note
                 };
             }
             finally
             {
                 if (File.Exists(tmp)) { try { File.Delete(tmp); } catch { /* best effort */ } }
+            }
+        }
+
+        /// <summary>Writes <paramref name="buf"/> to <paramref name="tmp"/> in the requested container and validates it. Returns a note.</summary>
+        private static string Encode(AudioBuffer buf, ExportOptions o, WavLoopPoints? loop, string tmp, CancellationToken ct, IProgress<float> progress)
+        {
+            switch (o.FileType)
+            {
+                case AudioFileType.Aiff:
+                {
+                    using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                        AiffEncoder.Write(fs, buf, o.Format, o.Dither, o.DitherSeed, ct, progress);
+                    AiffInfo info;
+                    using (var fs = File.OpenRead(tmp)) info = AiffDecoder.ReadInfo(fs);
+                    int bits = o.Format == WavSampleFormat.Float32 ? 32 : WavEncoder.BytesPerSample(o.Format) * 8;
+                    if (info.Frames != buf.Frames || info.Channels != buf.Channels || info.SampleRate != buf.SampleRate || info.BitsPerSample != bits)
+                        throw new IOException("Exported AIFF failed validation (header/sample count mismatch).");
+                    return "";
+                }
+                case AudioFileType.Flac:
+                {
+                    using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                        FlacEncoder.Write(fs, buf, o.Format, o.Dither, o.DitherSeed, ct, progress);
+                    FlacDecoder.Decode(tmp, out var info); // verifies frame CRCs
+                    if (info.Frames != buf.Frames || info.Channels != buf.Channels || info.SampleRate != buf.SampleRate ||
+                        info.BitsPerSample != PcmQuantizer.BitsFor(o.Format) || !info.Md5Matches)
+                        throw new IOException("Exported FLAC failed validation (header/MD5 mismatch).");
+                    return o.Format == WavSampleFormat.Float32 ? "FLAC has no float mode: stored as 24-bit" : "";
+                }
+                case AudioFileType.Mp3:
+                case AudioFileType.Ogg:
+                    return FfmpegEncoder.Encode(buf, o.FileType, o.BitrateKbps, o.FfmpegPath, tmp, ct, progress);
+                default:
+                {
+                    using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+                        WavEncoder.Write(fs, buf, o.Format, o.Dither, o.DitherSeed, loop, ct, progress);
+                    WavInfo info;
+                    using (var fs = File.OpenRead(tmp)) info = WavDecoder.ReadInfo(fs);
+                    if (info.Frames != buf.Frames || info.Channels != buf.Channels || info.SampleRate != buf.SampleRate ||
+                        info.BitsPerSample != WavEncoder.BytesPerSample(o.Format) * 8)
+                        throw new IOException("Exported WAV failed validation (header/sample count mismatch).");
+                    return "";
+                }
             }
         }
 

@@ -4,6 +4,20 @@ All notable changes to this package are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-06
+
+### Added
+- **More export formats**: in addition to WAV, the Export panel now writes **AIFF**, **FLAC**, **MP3** and **OGG Vorbis**.
+  - AIFF (PCM 16/24, AIFF-C float) and FLAC (lossless 16/24-bit, with MD5) are encoded in pure C#, with no dependencies.
+  - MP3 and OGG are encoded through ffmpeg, auto-detected or set in the Export panel (64–320 kbps).
+- Generator, Loop Editor and Variations exports (including batch) use the selected file type.
+- The export results show the format, file size and any format adjustments (e.g. "resampled to 48000 Hz (MP3 limit)").
+- `ExportFormatsTests`: 23 tests for AIFF/FLAC round-trips, corruption detection, the pipeline, and MP3/OGG (skipped without ffmpeg).
+
+### Notes
+- Loop metadata (`smpl`) is still written only to WAV.
+- Existing recipes keep exporting WAV (`fileType` defaults to WAV).
+
 ## [1.0.0] - 2026-11-06
 
 First release as a UPM package.

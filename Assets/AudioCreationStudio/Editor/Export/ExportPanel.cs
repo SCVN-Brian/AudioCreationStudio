@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 
 namespace AudioCreationStudio.EditorUI
 {
-    /// <summary>Modal export sheet: scope, format, rate, channels, normalization, trimming, destination, progress and cancel.</summary>
+    /// <summary>Modal export sheet: scope, file type (WAV/AIFF/FLAC/MP3/OGG), bit depth or bitrate, rate, channels, normalization, trimming, destination, progress and cancel.</summary>
     public sealed class ExportPanel : VisualElement
     {
         private static readonly int[] Rates = { 0, 22050, 32000, 44100, 48000, 96000 };
@@ -63,7 +63,7 @@ namespace AudioCreationStudio.EditorUI
             buttons.Add(UIUtil.Spacer());
             _cancelBtn = new StudioButton(Icon.Stop, "Cancel", () => _runner.Cancel(), "Cancel the running export");
             buttons.Add(_cancelBtn);
-            _exportBtn = new StudioButton(Icon.Export, "Export WAV", Export, "Render and write the WAV file", "acs-btn--accent");
+            _exportBtn = new StudioButton(Icon.Export, "Export", Export, "Render and write the audio file", "acs-btn--accent");
             buttons.Add(_exportBtn);
             foot.Add(buttons);
             sheet.Add(foot);
@@ -107,13 +107,37 @@ namespace AudioCreationStudio.EditorUI
             _body.Add(scope);
 
             var fmt = new SectionCard("Format");
-            var f = new SegmentedControl(new[] { "PCM 16-bit", "PCM 24-bit", "Float 32-bit" }, (int)e.format);
-            f.Changed += i => { Set("Export Format", x => x.format = (WavSampleFormat)i); Build(); };
-            fmt.Body.Add(f);
+            var types = new SegmentedControl(new[] { "WAV", "AIFF", "FLAC", "MP3", "OGG" }, (int)e.fileType);
+            types.Changed += i => { Set("Export File Type", x => x.fileType = (AudioFileType)i); Build(); };
+            fmt.Body.Add(types);
+            bool lossy = AudioFormats.IsLossy(e.fileType);
+            if (!lossy)
+            {
+                bool flac = e.fileType == AudioFileType.Flac;
+                var depthNames = flac ? new[] { "16-bit", "24-bit" } : new[] { "PCM 16-bit", "PCM 24-bit", "Float 32-bit" };
+                int depthIndex = flac && e.format == WavSampleFormat.Float32 ? 1 : (int)e.format;
+                var f = new SegmentedControl(depthNames, depthIndex);
+                f.Changed += i => { Set("Export Format", x => x.format = (WavSampleFormat)i); Build(); };
+                fmt.Body.Add(f);
+                if (flac) fmt.Body.Add(UIUtil.Label("Lossless, ~40–60% of WAV size. Unity does not import .flac as an AudioClip, so use it for delivery/archival.", "acs-hint"));
+                if (e.fileType == AudioFileType.Aiff && e.format == WavSampleFormat.Float32) fmt.Body.Add(UIUtil.Label("Float is written as AIFF-C (fl32).", "acs-hint"));
+            }
+            else
+            {
+                int bi = Math.Max(0, Array.IndexOf(FfmpegEncoder.Bitrates, e.lossyBitrateKbps));
+                if (Array.IndexOf(FfmpegEncoder.Bitrates, e.lossyBitrateKbps) < 0) bi = Array.IndexOf(FfmpegEncoder.Bitrates, 192);
+                fmt.Body.Add(Fields.Popup("Bitrate", Array.ConvertAll(FfmpegEncoder.Bitrates, b => $"{b} kbps"), bi,
+                    i => Set("Export Bitrate", x => x.lossyBitrateKbps = FfmpegEncoder.Bitrates[i])));
+                fmt.Body.Add(FfmpegRow());
+                if (e.fileType == AudioFileType.Mp3)
+                    fmt.Body.Add(UIUtil.Label("MP3 adds encoder padding, so it is not sample-accurate for seamless loops. Max 48 kHz, stereo.", "acs-hint"));
+            }
+            if (e.scope == ExportScope.LoopRegion && !AudioFormats.SupportsLoopMetadata(e.fileType))
+                fmt.Body.Add(UIUtil.Label("Loop points ('smpl' chunk) are only written to WAV.", "acs-hint"));
             var rateNames = Array.ConvertAll(Rates, r => r == 0 ? $"Recipe ({_ctx.SampleRate} Hz)" : $"{r} Hz");
             fmt.Body.Add(Fields.Popup("Sample Rate", rateNames, Math.Max(0, Array.IndexOf(Rates, e.sampleRate)), i => Set("Export Rate", x => x.sampleRate = Rates[i])));
             fmt.Body.Add(Fields.Popup("Channels", new[] { $"Recipe ({_ctx.Data.channels})", "Mono", "Stereo" }, Mathf.Clamp(e.channels, 0, 2), i => Set("Export Channels", x => x.channels = i)));
-            if (e.format == WavSampleFormat.Pcm16) fmt.Body.Add(Fields.Switch("TPDF Dither", e.dither, v => Set("Export Dither", x => x.dither = v), "Adds ±1 LSB triangular dither before 16-bit quantization"));
+            if (!lossy && e.format == WavSampleFormat.Pcm16) fmt.Body.Add(Fields.Switch("TPDF Dither", e.dither, v => Set("Export Dither", x => x.dither = v), "Adds ±1 LSB triangular dither before 16-bit quantization"));
             _body.Add(fmt);
 
             var proc = new SectionCard("Processing");
@@ -138,8 +162,31 @@ namespace AudioCreationStudio.EditorUI
                 Build();
             }, "Browse", "acs-btn--sm"));
             dest.Body.Add(folderRow);
-            dest.Body.Add(UIUtil.Label($"→ {ExportService.MakePath(e.outputFolder, defName)}", "acs-hint"));
+            dest.Body.Add(UIUtil.Label($"→ {ExportService.MakePath(e.outputFolder, defName, e.fileType)}", "acs-hint"));
             _body.Add(dest);
+
+            _exportBtn.Text = $"Export {AudioFormats.Label(e.fileType)}";
+            _exportBtn.tooltip = $"Render and write the {AudioFormats.Label(e.fileType)} file";
+        }
+
+        /// <summary>Shows which ffmpeg MP3/OGG export will use, with a picker. The path is stored per machine (EditorPrefs).</summary>
+        private VisualElement FfmpegRow()
+        {
+            string found = ExportService.ResolveFfmpeg();
+            var row = Fields.Text("ffmpeg", string.IsNullOrEmpty(ExportService.FfmpegPath) ? (found ?? "") : ExportService.FfmpegPath, v => { ExportService.FfmpegPath = v.Trim(); Build(); });
+            row.Add(new StudioButton(Icon.Folder, null, () =>
+            {
+                string p = EditorUtility.OpenFilePanel("Locate ffmpeg", string.IsNullOrEmpty(found) ? "" : System.IO.Path.GetDirectoryName(found), "");
+                if (string.IsNullOrEmpty(p)) return;
+                ExportService.FfmpegPath = p;
+                Build();
+            }, "Browse for the ffmpeg executable", "acs-btn--sm"));
+            var box = new VisualElement();
+            box.Add(row);
+            box.Add(UIUtil.Label(found != null
+                ? $"✓ Encoding with {found}"
+                : "⚠ ffmpeg not found. Install it (macOS: brew install ffmpeg · Windows: winget install ffmpeg) or browse to it. WAV/AIFF/FLAC don't need it.", "acs-hint"));
+            return box;
         }
 
         private string DefaultName()
@@ -162,7 +209,9 @@ namespace AudioCreationStudio.EditorUI
             try
             {
                 string name = string.IsNullOrEmpty(e.fileName) ? DefaultName() : e.fileName;
-                string path = ExportService.MakePath(e.outputFolder, name);
+                if (AudioFormats.IsLossy(e.fileType) && ExportService.ResolveFfmpeg() == null)
+                    throw new InvalidOperationException($"{AudioFormats.Label(e.fileType)} export needs ffmpeg, which was not found. Install it or set its path above.");
+                string path = ExportService.MakePath(e.outputFolder, name, e.fileType);
                 var opts = ExportOptions.From(e, e.scope == ExportScope.LoopRegion);
                 var item = ExportService.CreateItem(_ctx, e.scope, opts, path);
                 _results.Clear();
@@ -184,6 +233,8 @@ namespace AudioCreationStudio.EditorUI
             _exportBtn.SetEnabled(!_runner.IsRunning);
         }
 
+        private static string FormatBytes(long b) => b >= 1 << 20 ? $"{b / 1048576.0:0.0} MB" : b >= 1024 ? $"{b / 1024.0:0} KB" : $"{b} B";
+
         private void ShowResults(List<ExportResult> results, Exception ex, bool cancelled)
         {
             _results.Clear();
@@ -193,13 +244,15 @@ namespace AudioCreationStudio.EditorUI
                 row.AddToClassList("acs-result");
                 row.Add(new IconElement(r.Validated ? Icon.Check : Icon.Warning, 14) { Color = r.Validated ? StudioTheme.Success : StudioTheme.Warning });
                 row.Add(UIUtil.Label(System.IO.Path.GetFileName(r.Path), "acs-result__name"));
-                row.Add(UIUtil.Label($"{r.DurationSeconds:0.000}s · {r.SampleRate} Hz · {r.Channels}ch · {r.Format} · peak {r.PeakDb:0.0} dB" + (r.ClippedSamples > 0 ? $" · {r.ClippedSamples} clipped" : ""), "acs-label-dim"));
+                row.Add(UIUtil.Label($"{r.DurationSeconds:0.000}s · {r.SampleRate} Hz · {r.Channels}ch · {r.FormatLabel} · {FormatBytes(r.FileBytes)} · peak {r.PeakDb:0.0} dB" +
+                    (r.ClippedSamples > 0 ? $" · {r.ClippedSamples} clipped" : "") + (string.IsNullOrEmpty(r.Note) ? "" : $" · {r.Note}"), "acs-label-dim"));
                 string path = r.Path;
                 row.Add(new StudioButton(Icon.Folder, null, () =>
                 {
                     string data = Application.dataPath.Replace('\\', '/');
                     string p = path.Replace('\\', '/');
-                    if (p.StartsWith(data)) EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<AudioClip>("Assets" + p.Substring(data.Length)));
+                    var asset = p.StartsWith(data) ? AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets" + p.Substring(data.Length)) : null;
+                    if (asset != null) EditorGUIUtility.PingObject(asset);
                     else EditorUtility.RevealInFinder(p);
                 }, "Show file", "acs-btn--xs"));
                 _results.Add(row);

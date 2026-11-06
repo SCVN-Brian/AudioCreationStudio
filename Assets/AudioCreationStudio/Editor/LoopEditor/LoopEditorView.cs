@@ -81,7 +81,7 @@ namespace AudioCreationStudio.EditorUI
             actions.Add(new StudioButton(Icon.Stop, null, () => _ctx.Transport.Stop(), "Stop"));
             actions.Add(UIUtil.Spacer());
             actions.Add(new StudioButton(Icon.Magnet, "Snap to Zero Crossings", () => { _ctx.Session.Modify("Snap Loop Markers", _ => { }, StudioChange.Content); SnapMarkers(true, true); Process(); }, "Move both markers to the nearest rising zero crossings"));
-            actions.Add(new StudioButton(Icon.Export, "Export Loop WAV", ExportLoop, "Export loop-ready WAV with smpl loop metadata", "acs-btn--soft"));
+            actions.Add(new StudioButton(Icon.Export, "Export Loop", ExportLoop, "Export the seamless loop (WAV also gets smpl loop metadata)", "acs-btn--soft"));
             left.Add(actions);
             Add(left);
 
@@ -302,7 +302,10 @@ namespace AudioCreationStudio.EditorUI
             if (_loop == null) return;
             var opts = ExportOptions.From(_ctx.Data.export, true);
             var r = ExportService.ExportBufferInteractive(_loop, opts, $"{_ctx.Data.name}_Loop");
-            if (r != null) _ctx.Toast?.Invoke($"Exported loop {System.IO.Path.GetFileName(r.Path)} (smpl loop 0–{r.Frames})", false);
+            if (r == null) return;
+            string extra = r.FileType == AudioFileType.Wav ? $" (smpl loop 0–{r.Frames})"
+                : r.FileType == AudioFileType.Mp3 ? " — MP3 padding is not gapless; prefer WAV or OGG for loops" : "";
+            _ctx.Toast?.Invoke($"Exported loop {System.IO.Path.GetFileName(r.Path)}{extra}", r.FileType == AudioFileType.Mp3);
         }
     }
 }
