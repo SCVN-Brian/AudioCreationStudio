@@ -50,6 +50,9 @@ MonoBehaviour:
           subOscMix: 0
           durationSeconds: 0.34
           volumeDb: -14
+          sampleGuid: 
+          sampleName: 
+          sampleStart: 0
           oneShot: 0
           attack: 0.002
           decay: 0.05
@@ -85,6 +88,148 @@ MonoBehaviour:
         pan: 0
         playbackRate: 1
         fadeIn:
+          lengthSamples: 7767
+          curve: 1
+        fadeOut:
+          lengthSamples: 5224
+          curve: 1
+        loop: 0
+        enabled: 1
+        automation: []
+      effects: []
+      automation: []
+      showAutomation: 0
+      automationTarget: gain
+    - uid: d6b80097746d
+      name: bark_20261106_140708 (Random)
+      color: {r: 0.25882354, g: 0.7882353, b: 0.627451, a: 1}
+      gainDb: 0
+      pan: 0
+      mute: 0
+      solo: 0
+      clips:
+      - uid: 2dd6f7b1d8a8
+        name: bark_20261106_140708 (Random)
+        sourceKind: 1
+        sourceClip: {fileID: 0}
+        generator:
+          presetName: bark_20261106_140708 (Random)
+          seed: 1711340174
+          waveform: 6
+          frequency: 398.15668
+          dutyCycle: 0.4401723
+          subOscMix: 0
+          durationSeconds: 2.240304
+          volumeDb: 0
+          sampleGuid: 83a036b19a5a54fe683d2773c975ecd2
+          sampleName: bark_20261106_140708
+          sampleStart: 0
+          oneShot: 0
+          attack: 0.0005
+          decay: 0.00084944244
+          sustain: 1
+          release: 0.0036057367
+          pitchStart: -1.5709951
+          pitchEnd: 0.3679842
+          pitchSweepTime: 0.23350634
+          pitchCurve: 1
+          pitchJump: 0
+          pitchJumpTime: 0.1
+          vibratoRate: 0
+          vibratoDepth: 0
+          noiseMix: 0
+          noiseColor: 0
+          noiseFm: 0
+          tremoloRate: 0
+          tremoloDepth: 0
+          filterType: 0
+          filterCutoff: 4000
+          filterResonance: 0.707
+          filterEnvOctaves: 0
+          filterLfoRate: 0
+          filterLfoOctaves: 0
+          drive: 0
+        sourceSampleRate: 48000
+        sourceFrames: 107535
+        sourceChannels: 1
+        startSample: 0
+        sourceOffset: 6242
+        lengthSamples: 16228
+        gainDb: 0
+        pan: 0
+        playbackRate: 1
+        fadeIn:
+          lengthSamples: 0
+          curve: 1
+        fadeOut:
+          lengthSamples: 0
+          curve: 1
+        loop: 0
+        enabled: 1
+        automation: []
+      effects: []
+      automation: []
+      showAutomation: 0
+      automationTarget: gain
+    - uid: b7e69afaae19
+      name: a_young_man_talk__help_me,_help_me,_aaa_aaa_aaa__20261106_141842
+      color: {r: 0.9411765, g: 0.7019608, b: 0.3529412, a: 1}
+      gainDb: 0
+      pan: 0
+      mute: 0
+      solo: 0
+      clips:
+      - uid: 13588cf4b151
+        name: a_young_man_talk__help_me,_help_me,_aaa_aaa_aaa__20261106_141842
+        sourceKind: 1
+        sourceClip: {fileID: 0}
+        generator:
+          presetName: a_young_man_talk__help_me,_help_me,_aaa_aaa_aaa__20261106_141842
+          seed: 1
+          waveform: 6
+          frequency: 440
+          dutyCycle: 0.5
+          subOscMix: 0
+          durationSeconds: 1
+          volumeDb: 0
+          sampleGuid: 5982f428c62b04d0b8cc59abb22c5bc8
+          sampleName: a_young_man_talk__help_me,_help_me,_aaa_aaa_aaa__20261106_141842
+          sampleStart: 0
+          oneShot: 0
+          attack: 0.006019883
+          decay: 0.001
+          sustain: 1
+          release: 0.005
+          pitchStart: 0
+          pitchEnd: 0
+          pitchSweepTime: 0.2
+          pitchCurve: 1
+          pitchJump: 0
+          pitchJumpTime: 0.1
+          vibratoRate: 0
+          vibratoDepth: 0
+          noiseMix: 0
+          noiseColor: 0
+          noiseFm: 0
+          tremoloRate: 30
+          tremoloDepth: 0
+          filterType: 1
+          filterCutoff: 4000
+          filterResonance: 0.707
+          filterEnvOctaves: 0
+          filterLfoRate: 18
+          filterLfoOctaves: 0
+          drive: 0
+        sourceSampleRate: 48000
+        sourceFrames: 48000
+        sourceChannels: 1
+        startSample: 12480
+        sourceOffset: 9600
+        lengthSamples: 26532
+        gainDb: 0
+        pan: 0
+        playbackRate: 1.4472692012786865
+        fadeIn:
           lengthSamples: 0
           curve: 1
         fadeOut:
@@ -105,17 +250,19 @@ MonoBehaviour:
       source: 0
       clipUid: 
       assetClip: {fileID: 0}
-      loopStart: 0
-      loopEnd: 0
+      loopStart: 4497
+      loopEnd: 6455
       crossfadeSamples: 2400
       crossfadeCurve: 1
       snapToZeroCrossing: 1
       zeroSearchMs: 5
     export:
+      fileType: 1
       format: 0
+      lossyBitrateKbps: 192
       sampleRate: 0
       channels: 0
-      scope: 0
+      scope: 3
       includeTail: 1
       normalize: 1
       normalizeTargetDb: -1

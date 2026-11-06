@@ -1,0 +1,8 @@
+ElevenLabs sound effect
+prompt: old dog bark
+model: eleven_text_to_sound_v2
+duration: auto
+prompt_influence: 0.30
+loop: False
+format: wav_48000
+generated: 2026-11-06 14:16:28

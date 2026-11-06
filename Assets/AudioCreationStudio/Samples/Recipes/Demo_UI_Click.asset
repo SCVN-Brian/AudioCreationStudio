@@ -50,6 +50,9 @@ MonoBehaviour:
           subOscMix: 0
           durationSeconds: 0.06
           volumeDb: -6
+          sampleGuid: 
+          sampleName: 
+          sampleStart: 0
           oneShot: 1
           attack: 0.0005
           decay: 0.025
@@ -88,7 +91,7 @@ MonoBehaviour:
           lengthSamples: 0
           curve: 1
         fadeOut:
-          lengthSamples: 0
+          lengthSamples: 1493
           curve: 1
         loop: 0
         enabled: 1
