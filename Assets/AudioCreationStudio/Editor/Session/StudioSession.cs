@@ -20,6 +20,19 @@ namespace AudioCreationStudio.EditorUI
         All = ~0
     }
 
+    /// <summary>Timeline edit tools (DaVinci Resolve style).</summary>
+    public enum EditTool
+    {
+        /// <summary>A — select, move, trim edges (leaves gaps), fades.</summary>
+        Select = 0,
+        /// <summary>T — slip (body), slide (name bar), ripple trim (edges), roll (cut between touching clips).</summary>
+        Trim = 1,
+        /// <summary>B — click to cut; Shift-click cuts every track.</summary>
+        Blade = 2,
+        /// <summary>W — like Trim, and every edit is auto-previewed; , and . nudge.</summary>
+        DynamicTrim = 3
+    }
+
     /// <summary>Serializable window state that survives domain reloads.</summary>
     [Serializable]
     public class StudioState
@@ -30,6 +43,7 @@ namespace AudioCreationStudio.EditorUI
         public long playhead;
         public bool loopPlayback;
         public bool snap = true;
+        public EditTool editTool = EditTool.Select;
         public string activeTab = "Arrange";
         public TimelineViewState view = new TimelineViewState();
         public List<string> selectedClips = new List<string>();
@@ -114,6 +128,7 @@ namespace AudioCreationStudio.EditorUI
         }
 
         public bool Snap { get => _state.snap; set { _state.snap = value; Changed?.Invoke(StudioChange.View, null); } }
+        public EditTool Tool { get => _state.editTool; set { if (_state.editTool == value) return; _state.editTool = value; Changed?.Invoke(StudioChange.View, null); } }
         public bool LoopPlayback { get => _state.loopPlayback; set { _state.loopPlayback = value; Changed?.Invoke(StudioChange.View, null); } }
 
         public string DisplayName => (Asset != null ? Asset.name : Data.name) + (IsDirty ? " •" : "");

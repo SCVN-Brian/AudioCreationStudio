@@ -35,8 +35,8 @@ namespace AudioCreationStudio.EditorUI
 
     /// <summary>
     /// ElevenLabs text-to-sound-effects client (raw HTTPS via UnityWebRequest, main thread).
-    /// POST https://api.elevenlabs.io/v1/sound-generation, header xi-api-key. The key is stored in EditorPrefs
-    /// (per user and machine, never in the project) or read from ELEVENLABS_API_KEY.
+    /// POST https://api.elevenlabs.io/v1/sound-generation, header xi-api-key. The key comes from
+    /// <see cref="AudioStudioSettings"/> (Preferences ▸ Audio Creation Studio, or ELEVENLABS_API_KEY).
     /// </summary>
     public static class ElevenLabsClient
     {
@@ -47,31 +47,10 @@ namespace AudioCreationStudio.EditorUI
         public const string PreferredFormat = "wav_48000";
         public const string FallbackFormat = "mp3_44100_128";
         public const float MinDuration = 0.5f, MaxDuration = 30f;
-        private const string KeyPref = "AudioCreationStudio.ElevenLabsApiKey";
-
-        public static string ApiKey
-        {
-            get
-            {
-                var k = EditorPrefs.GetString(KeyPref, "");
-                return !string.IsNullOrEmpty(k) ? k : Environment.GetEnvironmentVariable("ELEVENLABS_API_KEY") ?? "";
-            }
-        }
-
-        public static bool HasKey => !string.IsNullOrEmpty(ApiKey);
-        public static bool KeyFromEnvironment => string.IsNullOrEmpty(EditorPrefs.GetString(KeyPref, "")) && HasKey;
-        public static void SaveKey(string key) => EditorPrefs.SetString(KeyPref, (key ?? "").Trim());
-        public static void ClearKey() => EditorPrefs.DeleteKey(KeyPref);
-
-        public static string MaskedKey
-        {
-            get
-            {
-                var k = ApiKey;
-                if (k.Length < 10) return k.Length == 0 ? "" : "••••";
-                return k.Substring(0, 4) + "…" + k.Substring(k.Length - 4);
-            }
-        }
+        public static string ApiKey => AudioStudioSettings.ElevenLabsKey;
+        public static bool HasKey => AudioStudioSettings.HasElevenLabsKey;
+        public static bool KeyFromEnvironment => AudioStudioSettings.ElevenLabsKeyFromEnvironment;
+        public static string MaskedKey => AudioStudioSettings.Mask(ApiKey);
 
         // ------------------------------------------------------------------ Request
 
@@ -156,10 +135,10 @@ namespace AudioCreationStudio.EditorUI
         public static Handle Send(SfxRequest request, Action<SfxResponse> done)
         {
             var h = new Handle { Started = EditorApplication.timeSinceStartup, Done = done, Request = request };
-            if (!HasKey)
+            if (!AudioStudioSettings.RequireElevenLabsKey())
             {
                 h.Finished = true;
-                done(new SfxResponse { Error = "No ElevenLabs API key. Click 'API Key' and paste a key from elevenlabs.io (Profile ▸ API Keys)." });
+                done(new SfxResponse { Error = "No ElevenLabs API key. Set it in Preferences ▸ Audio Creation Studio." });
                 return h;
             }
             if (string.IsNullOrWhiteSpace(request.Text))
@@ -204,7 +183,7 @@ namespace AudioCreationStudio.EditorUI
             {
                 case 0: r.Error = $"Network error: {netError ?? result.ToString()}. Check the internet connection."; break;
                 case 200: r.Error = "ElevenLabs returned no audio."; break;
-                case 401: r.Error = "Invalid ElevenLabs API key (401). Check it in 'API Key'."; break;
+                case 401: r.Error = "Invalid ElevenLabs API key (401). Check it in Preferences ▸ Audio Creation Studio."; break;
                 case 402: r.Error = $"Not enough ElevenLabs credits / plan limit (402). {msg}"; break;
                 case 403: r.Error = $"Not allowed for this plan or key (403). {msg}"; break;
                 case 422: r.Error = $"Invalid request (422): {msg}"; break;

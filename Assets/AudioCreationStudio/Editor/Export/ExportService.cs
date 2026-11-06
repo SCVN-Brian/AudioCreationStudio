@@ -111,22 +111,14 @@ namespace AudioCreationStudio.EditorUI
         public const string DefaultFolder = "Assets/AudioCreationStudio/Exports";
 
         private static readonly string[] KnownExtensions = { ".wav", ".aif", ".aiff", ".flac", ".mp3", ".ogg" };
-        private const string FfmpegPrefKey = "AudioCreationStudio.FfmpegPath";
-
-        /// <summary>User-chosen ffmpeg executable (per machine, stored in EditorPrefs). Empty = auto-detect.</summary>
-        public static string FfmpegPath
-        {
-            get => EditorPrefs.GetString(FfmpegPrefKey, "");
-            set => EditorPrefs.SetString(FfmpegPrefKey, value ?? "");
-        }
-
-        /// <summary>The ffmpeg that MP3/OGG export will use, or null when none is installed.</summary>
-        public static string ResolveFfmpeg() => FfmpegEncoder.Locate(FfmpegPath);
-
-        /// <summary>Fills machine-specific options (ffmpeg location) that do not belong in the recipe asset.</summary>
+        /// <summary>
+        /// Fills machine-specific options (ffmpeg location from <see cref="AudioStudioSettings"/>) that do not belong in the
+        /// recipe asset. Logs a warning when MP3/OGG is requested but ffmpeg is missing.
+        /// </summary>
         public static void ApplyEditorPrefs(ExportOptions o)
         {
-            if (o != null && string.IsNullOrEmpty(o.FfmpegPath)) o.FfmpegPath = ResolveFfmpeg();
+            if (o == null || !string.IsNullOrEmpty(o.FfmpegPath)) return;
+            o.FfmpegPath = AudioFormats.IsLossy(o.FileType) ? AudioStudioSettings.RequireFfmpeg(AudioFormats.Label(o.FileType)) : AudioStudioSettings.ResolveFfmpeg();
         }
 
         public static string MakePath(string folder, string fileName, AudioFileType type = AudioFileType.Wav)
@@ -199,9 +191,11 @@ namespace AudioCreationStudio.EditorUI
             ApplyEditorPrefs(options);
             if (AudioFormats.IsLossy(options.FileType) && string.IsNullOrEmpty(options.FfmpegPath))
             {
-                EditorUtility.DisplayDialog("Audio Creation Studio",
-                    $"{AudioFormats.Label(options.FileType)} export needs ffmpeg, which was not found.\n\n" +
-                    "Install it (macOS: brew install ffmpeg · Windows: winget install ffmpeg) or set its path in the Export panel.", "OK");
+                if (EditorUtility.DisplayDialog("Audio Creation Studio",
+                        $"{AudioFormats.Label(options.FileType)} export needs ffmpeg, which was not found.\n\n" +
+                        "Install it (macOS: brew install ffmpeg · Windows: winget install ffmpeg) or set its path in Preferences ▸ Audio Creation Studio.",
+                        "Open Settings", "Cancel"))
+                    AudioStudioSettings.Open();
                 return null;
             }
             string ext = AudioFormats.Extension(options.FileType).TrimStart('.');

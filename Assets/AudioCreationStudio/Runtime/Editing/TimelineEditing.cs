@@ -255,6 +255,170 @@ namespace AudioCreationStudio.Editing
                 }
         }
 
+        // ================================================================== Trim tools (slip / slide / roll / ripple)
+
+        /// <summary>Clips closer than this (in samples) count as touching for roll and slide.</summary>
+        public const long AdjacencyTolerance = 2;
+
+        /// <summary>Copies the editable placement of <paramref name="snapshot"/> back onto <paramref name="dst"/> (drags re-apply from their origin).</summary>
+        public static void RestorePlacement(ClipData dst, ClipData snapshot)
+        {
+            dst.startSample = snapshot.startSample;
+            dst.sourceOffset = snapshot.sourceOffset;
+            dst.lengthSamples = snapshot.lengthSamples;
+            dst.fadeIn = (snapshot.fadeIn ?? new FadeData()).Clone();
+            dst.fadeOut = (snapshot.fadeOut ?? new FadeData()).Clone();
+            dst.automation = new List<AutomationLane>();
+            if (snapshot.automation != null) foreach (var l in snapshot.automation) dst.automation.Add(l.Clone());
+        }
+
+        /// <summary>The clip on the same track whose end touches <paramref name="c"/>'s start, or null.</summary>
+        public static ClipData LeftNeighbor(TrackData t, ClipData c)
+        {
+            ClipData best = null;
+            foreach (var o in t.clips)
+                if (o != c && Math.Abs(o.EndSample - c.startSample) <= AdjacencyTolerance && o.startSample < c.startSample && (best == null || o.EndSample > best.EndSample))
+                    best = o;
+            return best;
+        }
+
+        /// <summary>The clip on the same track whose start touches <paramref name="c"/>'s end, or null.</summary>
+        public static ClipData RightNeighbor(TrackData t, ClipData c)
+        {
+            ClipData best = null;
+            foreach (var o in t.clips)
+                if (o != c && Math.Abs(o.startSample - c.EndSample) <= AdjacencyTolerance && o.EndSample > c.EndSample && (best == null || o.startSample < best.startSample))
+                    best = o;
+            return best;
+        }
+
+        /// <summary>Valid <see cref="ClipData.sourceOffset"/> range for slipping (min, max). Looping clips can slip freely.</summary>
+        public static void SlipRange(ClipData c, int recipeRate, out long min, out long max)
+        {
+            if (c.loop) { min = long.MinValue / 4; max = long.MaxValue / 4; return; }
+            long needed = (long)Math.Ceiling(c.lengthSamples * c.SourceStep(recipeRate));
+            min = 0;
+            max = Math.Max(0, c.sourceFrames - needed);
+        }
+
+        /// <summary>
+        /// Slip: changes which part of the source the clip shows without moving the clip, its length, fades or automation.
+        /// The offset is clamped so the clip never runs past either end of the source.
+        /// </summary>
+        public static void Slip(ClipData c, long newSourceOffset, int recipeRate)
+        {
+            if (c.loop && c.sourceFrames > 0) { c.sourceOffset = DspMath.Mod(newSourceOffset, c.sourceFrames); return; }
+            SlipRange(c, recipeRate, out long min, out long max);
+            c.sourceOffset = DspMath.Clamp(newSourceOffset, min, max);
+        }
+
+        /// <summary>
+        /// Slide: moves <paramref name="c"/> while the touching neighbours absorb the change (the left one's end and the
+        /// right one's start follow), so the edit stays gap-free. Returns the applied delta.
+        /// </summary>
+        public static long Slide(TrackData t, ClipData c, long newStart, int recipeRate)
+        {
+            var left = LeftNeighbor(t, c);
+            var right = RightNeighbor(t, c);
+            long delta = newStart - c.startSample;
+            long lo = -c.startSample, hi = long.MaxValue / 4;
+            if (left != null)
+            {
+                lo = Math.Max(lo, MinClipLength - left.lengthSamples);
+                if (!left.loop) hi = Math.Min(hi, left.MaxLengthFromOffset(recipeRate) - left.lengthSamples);
+            }
+            if (right != null)
+            {
+                hi = Math.Min(hi, right.lengthSamples - MinClipLength);
+                if (!right.loop) lo = Math.Max(lo, -(long)Math.Floor(right.sourceOffset / right.SourceStep(recipeRate)));
+            }
+            if (lo > hi) return 0;
+            delta = DspMath.Clamp(delta, lo, hi);
+            if (delta == 0) return 0;
+            if (left != null) TrimEnd(left, left.EndSample + delta, recipeRate);
+            if (right != null) TrimStart(right, right.startSample + delta, recipeRate);
+            c.startSample += delta;
+            return delta;
+        }
+
+        /// <summary>
+        /// Roll: moves the cut between two touching clips — <paramref name="left"/> gets longer while
+        /// <paramref name="right"/> gets shorter (or vice versa); nothing else on the timeline moves. Returns the new cut.
+        /// </summary>
+        public static long Roll(ClipData left, ClipData right, long newCut, int recipeRate)
+        {
+            long lo = left.startSample + MinClipLength;
+            long hi = right.EndSample - MinClipLength;
+            if (!left.loop) hi = Math.Min(hi, left.startSample + left.MaxLengthFromOffset(recipeRate));
+            if (!right.loop) lo = Math.Max(lo, right.startSample - (long)Math.Floor(right.sourceOffset / right.SourceStep(recipeRate)));
+            if (lo > hi) return left.EndSample;
+            newCut = DspMath.Clamp(newCut, lo, hi);
+            TrimEnd(left, newCut, recipeRate);
+            TrimStart(right, newCut, recipeRate);
+            return newCut;
+        }
+
+        /// <summary>
+        /// Ripple trim of the clip's end: the clip gets shorter/longer and every later clip on the track moves by the
+        /// same amount, so no gap opens. Returns the applied delta.
+        /// </summary>
+        public static long RippleTrimEnd(TrackData t, ClipData c, long newEnd, int recipeRate)
+        {
+            long oldEnd = c.EndSample;
+            TrimEnd(c, newEnd, recipeRate);
+            long delta = c.EndSample - oldEnd;
+            ShiftFollowing(t, c, oldEnd, delta);
+            return delta;
+        }
+
+        /// <summary>
+        /// Ripple trim of the clip's head: the clip stays at the same timeline position, its in-point moves
+        /// (<paramref name="newStart"/> − start samples are removed, or revealed when negative), and every later clip
+        /// moves to close/open the gap. Returns the number of samples removed from the head.
+        /// </summary>
+        public static long RippleTrimStart(TrackData t, ClipData c, long newStart, int recipeRate)
+        {
+            long oldEnd = c.EndSample;
+            long delta = newStart - c.startSample;
+            double step = c.SourceStep(recipeRate);
+            delta = Math.Min(delta, c.lengthSamples - MinClipLength);
+            if (!c.loop) delta = Math.Max(delta, -(long)Math.Floor(c.sourceOffset / step));
+            if (delta == 0) return 0;
+            long newOffset = c.sourceOffset + (long)Math.Round(delta * step);
+            newOffset = c.loop && c.sourceFrames > 0 ? DspMath.Mod(newOffset, c.sourceFrames) : Math.Max(0, newOffset);
+            ShiftAutomation(c.automation, -delta);
+            c.sourceOffset = newOffset;
+            c.lengthSamples -= delta;
+            ClampFades(c);
+            ShiftFollowing(t, c, oldEnd, -delta);
+            return delta;
+        }
+
+        /// <summary>Moves every clip on <paramref name="t"/> (except <paramref name="except"/>) that starts at or after <paramref name="from"/>.</summary>
+        public static void ShiftFollowing(TrackData t, ClipData except, long from, long delta)
+        {
+            if (delta == 0) return;
+            foreach (var o in t.clips)
+                if (o != except && o.startSample >= from - AdjacencyTolerance) o.startSample = Math.Max(0, o.startSample + delta);
+        }
+
+        /// <summary>Blade: splits every clip in <paramref name="tracks"/> that spans <paramref name="at"/>. Returns the new right-hand clips.</summary>
+        public static List<ClipData> SplitAll(IEnumerable<TrackData> tracks, long at, int recipeRate)
+        {
+            var created = new List<ClipData>();
+            foreach (var t in tracks)
+            {
+                var hits = new List<ClipData>();
+                foreach (var c in t.clips) if (at > c.startSample && at < c.EndSample) hits.Add(c);
+                foreach (var c in hits)
+                {
+                    var r = Split(t, c, at, recipeRate);
+                    if (r != null) created.Add(r);
+                }
+            }
+            return created;
+        }
+
         private static void ShiftAutomation(List<AutomationLane> lanes, long delta)
         {
             foreach (var l in lanes)

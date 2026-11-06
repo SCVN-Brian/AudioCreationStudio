@@ -30,14 +30,14 @@ namespace AudioCreationStudio.EditorUI
 
         private readonly StudioContext _ctx;
         private readonly GeneratorView _gen;
-        private readonly TextField _prompt, _keyField;
+        private readonly TextField _prompt;
         private readonly SwitchToggle _autoDuration, _loop;
         private readonly ParamRow _duration, _influence;
         private readonly PopupField<string> _model;
         private readonly SegmentedControl _takesCount;
         private readonly ObjectField _reference;
         private readonly Label _refInfo, _status;
-        private readonly VisualElement _keyRow, _noKey, _takesList, _promptWarning;
+        private readonly VisualElement _noKey, _takesList, _promptWarning;
         private readonly Label _promptWarningText;
         private readonly StudioButton _generateBtn, _cancelBtn;
         private readonly List<Take> _takes = new List<Take>();
@@ -52,22 +52,16 @@ namespace AudioCreationStudio.EditorUI
             _ctx = ctx;
             _gen = gen;
             AddToClassList("acs-ai");
-            Actions.Add(new StudioButton(Icon.Gear, "API Key", ToggleKeyRow, "Set the ElevenLabs API key", "acs-btn--sm"));
+            Actions.Add(new StudioButton(Icon.Gear, "Settings", AudioStudioSettings.Open, "ElevenLabs API key and other settings (Preferences ▸ Audio Creation Studio)", "acs-btn--sm"));
 
-            // Key
-            _keyRow = new VisualElement();
-            _keyRow.AddToClassList("acs-ai__key");
-            _keyField = new TextField { isPasswordField = true, value = "" };
-            _keyField.AddToClassList("acs-field");
-            _keyRow.Add(UIUtil.Row(UIUtil.Label("ElevenLabs key", "acs-param__label"), _keyField,
-                new StudioButton(Icon.Check, "Save", SaveKey, "Store the key on this computer", "acs-btn--sm", "acs-btn--soft"),
-                new StudioButton(Icon.Trash, null, () => { ElevenLabsClient.ClearKey(); UpdateKeyState(); _ctx.Toast?.Invoke("API key removed", false); }, "Remove the stored key", "acs-btn--sm")));
-            _keyRow.Add(UIUtil.Label("Stored only on this computer (EditorPrefs), never in the project. ELEVENLABS_API_KEY is used if no key is saved.", "acs-hint"));
-            _keyRow.Add(new StudioButton(Icon.Export, "Get a key at elevenlabs.io (Developers ▸ API Keys)", () => Application.OpenURL("https://elevenlabs.io/app/settings/api-keys"), null, "acs-btn--ghost", "acs-btn--sm"));
-            _keyRow.style.display = DisplayStyle.None;
-            Body.Add(_keyRow);
-            _noKey = Fields.Warning("Add your ElevenLabs API key (button 'API Key' above). Each generation uses ElevenLabs credits from your plan.");
+            // Missing key notice (the key itself lives in Preferences ▸ Audio Creation Studio)
+            _noKey = new VisualElement();
+            _noKey.Add(Fields.Warning("No ElevenLabs API key. Add it in Preferences ▸ Audio Creation Studio. Each generation uses ElevenLabs credits from your plan."));
+            _noKey.Add(new StudioButton(Icon.Gear, "Open Settings", AudioStudioSettings.Open, "Preferences ▸ Audio Creation Studio", "acs-btn--sm", "acs-btn--soft"));
             Body.Add(_noKey);
+            AudioStudioSettings.Changed += UpdateKeyState;
+            RegisterCallback<DetachFromPanelEvent>(_ => AudioStudioSettings.Changed -= UpdateKeyState);
+            RegisterCallback<AttachToPanelEvent>(_ => { AudioStudioSettings.Changed -= UpdateKeyState; AudioStudioSettings.Changed += UpdateKeyState; UpdateKeyState(); });
 
             // Prompt
             Body.Add(UIUtil.Label("DESCRIBE THE SOUND (English works best)", "acs-overline"));
@@ -198,29 +192,11 @@ namespace AudioCreationStudio.EditorUI
 
         // ------------------------------------------------------------------ Key
 
-        private void ToggleKeyRow()
-        {
-            bool show = _keyRow.style.display == DisplayStyle.None;
-            _keyRow.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
-            _keyField.SetValueWithoutNotify("");
-            if (show) _keyField.Focus();
-        }
-
-        private void SaveKey()
-        {
-            var k = (_keyField.value ?? "").Trim();
-            if (k.Length < 20) { _ctx.Toast?.Invoke("That does not look like an ElevenLabs API key.", true); return; }
-            ElevenLabsClient.SaveKey(k);
-            _keyField.SetValueWithoutNotify("");
-            _keyRow.style.display = DisplayStyle.None;
-            UpdateKeyState();
-            _ctx.Toast?.Invoke($"ElevenLabs key saved ({ElevenLabsClient.MaskedKey})", false);
-        }
-
         private void UpdateKeyState()
         {
             _noKey.style.display = ElevenLabsClient.HasKey ? DisplayStyle.None : DisplayStyle.Flex;
-            _generateBtn.SetEnabled(ElevenLabsClient.HasKey && _pending == null);
+            // Generate stays clickable without a key: clicking it logs a warning that says where to set one.
+            _generateBtn.SetEnabled(_pending == null);
             Title.text = ElevenLabsClient.HasKey
                 ? $"AI Sound Effects  ·  ElevenLabs  ·  key {ElevenLabsClient.MaskedKey}{(ElevenLabsClient.KeyFromEnvironment ? " (env)" : "")}"
                 : "AI Sound Effects  ·  ElevenLabs";
@@ -290,7 +266,11 @@ namespace AudioCreationStudio.EditorUI
         private void Generate()
         {
             if (_pending != null) return;
-            if (!ElevenLabsClient.HasKey) { ToggleKeyRow(); return; }
+            if (!AudioStudioSettings.RequireElevenLabsKey())
+            {
+                _ctx.Toast?.Invoke("No ElevenLabs API key: set it in Preferences ▸ Audio Creation Studio", true);
+                return;
+            }
             string text = (_prompt.value ?? "").Trim();
             if (text.Length == 0) { _ctx.Toast?.Invoke("Describe the sound first", true); return; }
             var warning = CheckPrompt(text);
@@ -337,7 +317,7 @@ namespace AudioCreationStudio.EditorUI
         private void SetBusy(bool busy)
         {
             _cancelBtn.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
-            _generateBtn.SetEnabled(!busy && ElevenLabsClient.HasKey);
+            _generateBtn.SetEnabled(!busy);
         }
 
         private void OnResponse(SfxRequest req, SfxResponse resp)

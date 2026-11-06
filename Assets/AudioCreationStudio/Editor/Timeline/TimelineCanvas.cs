@@ -13,13 +13,14 @@ namespace AudioCreationStudio.EditorUI
     /// The multitrack arrangement surface. Draws lanes, grid, clips (real waveforms from the peak cache),
     /// fades, automation and the playhead, and implements selection, move (incl. cross-track and
     /// Alt-duplicate), trim, fade, snapping, automation editing and drag-and-drop import.
+    /// Edit tools (<see cref="EditTool"/>): Selection, Trim (slip / slide / ripple / roll), Blade and Dynamic Trim.
     /// </summary>
     public sealed class TimelineCanvas : VisualElement
     {
-        private enum Hit { None, Empty, Lane, Body, TrimLeft, TrimRight, FadeIn, FadeOut, AutoLane, AutoPoint }
-        private enum Drag { None, Move, TrimLeft, TrimRight, FadeIn, FadeOut, AutoPoint, Scrub }
+        private enum Hit { None, Empty, Lane, Body, TrimLeft, TrimRight, FadeIn, FadeOut, AutoLane, AutoPoint, Slip, Slide, Roll, RippleLeft, RippleRight, Blade }
+        private enum Drag { None, Move, TrimLeft, TrimRight, FadeIn, FadeOut, AutoPoint, Scrub, Slip, Slide, Roll, RippleLeft, RippleRight }
 
-        private const float ClipHeaderH = 17f, ClipPadTop = 4f, ClipPadBottom = 5f, EdgePx = 6f, FadeHandleR = 5f;
+        private const float ClipHeaderH = 17f, ClipPadTop = 4f, ClipPadBottom = 5f, EdgePx = 6f, FadeHandleR = 5f, RollPx = 3f;
 
         private readonly StudioContext _ctx;
         private readonly QuadBatch _quads = new QuadBatch();
@@ -48,6 +49,14 @@ namespace AudioCreationStudio.EditorUI
         private bool _dropActive;
         private int _dropCount;
 
+        // Trim tools
+        private string _hitPartner, _hoverPartner;
+        private string _dragPartner, _dragTrack;
+        private readonly Dictionary<string, ClipData> _snapshot = new Dictionary<string, ClipData>();
+        private long _bladeSample = -1;
+        private bool _bladeAll;
+        private readonly Label _info;
+
         private StudioSession S => _ctx.Session;
         private TimelineViewState V => _ctx.Session.View;
         private RecipeData R => _ctx.Session.Data;
@@ -64,6 +73,10 @@ namespace AudioCreationStudio.EditorUI
             _labelLayer = new VisualElement { pickingMode = PickingMode.Ignore };
             _labelLayer.AddToClassList("acs-canvas__labels");
             Add(_labelLayer);
+            _info = new Label { pickingMode = PickingMode.Ignore };
+            _info.AddToClassList("acs-draginfo");
+            _info.style.display = DisplayStyle.None;
+            Add(_info);
 
             RegisterCallback<PointerDownEvent>(OnPointerDown);
             RegisterCallback<PointerMoveEvent>(OnPointerMove);
@@ -146,6 +159,7 @@ namespace AudioCreationStudio.EditorUI
                 float h = TimelineViewState.RowHeight(t);
                 if (y + h >= 0 && y <= r.height)
                 {
+                    if (_drag == Drag.Slip && _dragTrack == t.uid) DrawSlipGhost(mgc, p, y, r, ppp);
                     foreach (var c in t.clips) DrawClip(mgc, p, t, c, y, r, ppp);
                     if (t.showAutomation) DrawAutomationLane(p, t, i, y + TimelineViewState.TrackHeight, r);
                 }
@@ -160,6 +174,20 @@ namespace AudioCreationStudio.EditorUI
                 var dr = new Rect(_dropPos.x, rowTop + ClipPadTop, 120, TimelineViewState.TrackHeight - ClipPadTop - ClipPadBottom);
                 PaintUtil.FillRounded(p, dr, 6, StudioTheme.Accent.WithAlpha(0.18f));
                 PaintUtil.StrokeRounded(p, dr, 6, StudioTheme.Accent, 1.5f);
+            }
+
+            // Blade cut preview
+            if (S.Tool == EditTool.Blade && _drag == Drag.None && _bladeSample >= 0 && _hoverClip != null)
+            {
+                float bx = V.X(_bladeSample, SR);
+                var hc = R.FindClip(_hoverClip, out var owner);
+                if (_bladeAll || hc == null) _quads.Rect(bx - 0.75f, 0, 1.5f, Mathf.Min(r.height, Mathf.Max(0, y)), StudioTheme.Warning);
+                else
+                {
+                    var cr = ClipRect(hc, V.RowTop(data, data.tracks.IndexOf(owner)));
+                    _quads.Rect(bx - 0.75f, cr.y - 2, 1.5f, cr.height + 4, StudioTheme.Warning);
+                }
+                _quads.Flush(mgc);
             }
 
             // Snap indicator
@@ -224,6 +252,44 @@ namespace AudioCreationStudio.EditorUI
                 float hx = _hoverHit == Hit.TrimLeft ? cr.x + 1 : cr.xMax - 4;
                 PaintUtil.FillRounded(p, new Rect(hx, cr.y + 4, 3, cr.height - 8), 1.5f, StudioTheme.Text);
             }
+
+            // Trim-tool edges: ripple (one side, warning colour) and roll (both sides of the cut, accent colour)
+            bool active = _drag == Drag.None ? hover || c.uid == _hoverPartner : c.uid == _dragClip || c.uid == _dragPartner;
+            Hit edge = _drag switch
+            {
+                Drag.RippleLeft => Hit.RippleLeft, Drag.RippleRight => Hit.RippleRight, Drag.Roll => Hit.Roll,
+                Drag.None => _hoverHit, _ => Hit.None
+            };
+            string rollLeft = _drag == Drag.Roll ? _dragClip : _hoverClip;
+            if (active && (edge == Hit.RippleLeft || edge == Hit.RippleRight))
+                PaintUtil.FillRounded(p, new Rect(edge == Hit.RippleLeft ? cr.x + 1 : cr.xMax - 4, cr.y + 3, 3, cr.height - 6), 1.5f, StudioTheme.Warning);
+            else if (active && edge == Hit.Roll)
+                PaintUtil.FillRounded(p, new Rect(c.uid == rollLeft ? cr.xMax - 4 : cr.x + 1, cr.y + 3, 3, cr.height - 6), 1.5f, StudioTheme.Accent);
+        }
+
+        /// <summary>While slipping, shows the whole source behind the clip so you can see which part of the audio is in the cut.</summary>
+        private void DrawSlipGhost(MeshGenerationContext mgc, Painter2D p, float rowTop, Rect view, float ppp)
+        {
+            var c = R.FindClip(_dragClip);
+            if (c == null || c.loop || c.sourceFrames <= 0) return;
+            double step = c.SourceStep(SR);
+            var ghost = c.Clone(false);
+            ghost.startSample = c.startSample - (long)Math.Round(c.sourceOffset / step);
+            ghost.sourceOffset = 0;
+            ghost.lengthSamples = Math.Max(1, (long)Math.Floor(c.sourceFrames / step));
+            ghost.fadeIn = new FadeData();
+            ghost.fadeOut = new FadeData();
+            ghost.automation = new List<AutomationLane>();
+            var gr = ClipRect(ghost, rowTop);
+            PaintUtil.FillRounded(p, gr, 6, StudioTheme.Surface.WithAlpha(0.6f));
+            var peaks = _ctx.PeaksFor(c, out _);
+            if (peaks != null)
+            {
+                var wr = new Rect(gr.x + 1, gr.y + ClipHeaderH + 2, gr.width - 2, gr.height - ClipHeaderH - 4);
+                DrawClipWaveform(ghost, peaks, wr, view, ppp, StudioTheme.TextFaint, false);
+                _quads.Flush(mgc);
+            }
+            PaintUtil.StrokeRounded(p, gr, 6, StudioTheme.TextFaint.WithAlpha(0.8f), 1f);
         }
 
         private void DrawClipWaveform(ClipData c, WaveformPeaks peaks, Rect wr, Rect view, float ppp, Color color, bool selected)
@@ -425,6 +491,7 @@ namespace AudioCreationStudio.EditorUI
         private Hit HitTest(Vector2 pos, out ClipData clip, out TrackData track, out int pointIndex)
         {
             clip = null; track = null; pointIndex = -1;
+            _hitPartner = null;
             var data = R;
             int ti = V.TrackIndexAt(data, pos.y, out bool inAuto);
             if (ti < 0 || ti >= data.tracks.Count) return Hit.Empty;
@@ -442,6 +509,9 @@ namespace AudioCreationStudio.EditorUI
                 var cr = ClipRect(c, rowTop);
                 if (!cr.Contains(pos)) continue;
                 clip = c;
+                var tool = S.Tool;
+                if (tool == EditTool.Blade) return Hit.Blade;
+                if (tool == EditTool.Trim || tool == EditTool.DynamicTrim) return TrimToolHit(track, c, cr, pos, ref clip);
                 float bodyTop = cr.y + ClipHeaderH;
                 float fin = cr.x + (float)(c.fadeIn.lengthSamples / (double)SR * V.pixelsPerSecond);
                 float fout = cr.xMax - (float)(c.fadeOut.lengthSamples / (double)SR * V.pixelsPerSecond);
@@ -455,6 +525,27 @@ namespace AudioCreationStudio.EditorUI
                 return Hit.Body;
             }
             return Hit.Lane;
+        }
+
+        /// <summary>Trim / Dynamic Trim: edge → ripple, cut between touching clips → roll, name bar → slide, body → slip.</summary>
+        private Hit TrimToolHit(TrackData track, ClipData c, Rect cr, Vector2 pos, ref ClipData clip)
+        {
+            if (cr.width > EdgePx * 3)
+            {
+                if (cr.xMax - pos.x <= EdgePx)
+                {
+                    var rn = TimelineEditing.RightNeighbor(track, c);
+                    if (rn != null && cr.xMax - pos.x <= RollPx) { _hitPartner = rn.uid; return Hit.Roll; }
+                    return Hit.RippleRight;
+                }
+                if (pos.x - cr.x <= EdgePx)
+                {
+                    var ln = TimelineEditing.LeftNeighbor(track, c);
+                    if (ln != null && pos.x - cr.x <= RollPx) { clip = ln; _hitPartner = c.uid; return Hit.Roll; }
+                    return Hit.RippleLeft;
+                }
+            }
+            return pos.y < cr.y + ClipHeaderH ? Hit.Slide : Hit.Slip;
         }
 
         private int FindAutoPoint(TrackData t, float laneTop, Vector2 pos)
@@ -520,6 +611,28 @@ namespace AudioCreationStudio.EditorUI
                     _snap.Build(R, V, S.Playhead, exclude, S.Snap && !e.ctrlKey);
                     S.BeginContinuous(_drag == Drag.TrimLeft || _drag == Drag.TrimRight ? "Trim Clip" : "Adjust Fade");
                     break;
+                case Hit.Blade:
+                {
+                    long cut = _snap.Snap(V.SampleAtX(pos.x, SR), out _);
+                    bool all = e.shiftKey;
+                    string tuid = track.uid;
+                    int made = 0;
+                    S.Modify(all ? "Blade All Tracks" : "Blade", r =>
+                    {
+                        IEnumerable<TrackData> tracks = all ? (IEnumerable<TrackData>)r.tracks : new[] { r.FindTrack(tuid) };
+                        made = TimelineEditing.SplitAll(tracks, cut, r.sampleRate).Count;
+                    }, StudioChange.Structure);
+                    if (made == 0) _ctx.Toast?.Invoke("Too close to the clip edge to cut", false);
+                    break;
+                }
+                case Hit.Slip:
+                case Hit.Slide:
+                case Hit.Roll:
+                case Hit.RippleLeft:
+                case Hit.RippleRight:
+                    if (e.clickCount == 2) { _ctx.Transport.PlayClip(clip.uid); break; }
+                    BeginTrimTool(hit, clip, track, e.ctrlKey);
+                    break;
                 case Hit.AutoPoint:
                     if (e.altKey || e.clickCount == 2) { DeleteAutoPoint(track, pointIndex); break; }
                     _autoTrack = track.uid;
@@ -581,6 +694,20 @@ namespace AudioCreationStudio.EditorUI
             _snap.Build(R, V, S.Playhead, new HashSet<string>(S.SelectedClips), _snap.Enabled);
         }
 
+        private void BeginTrimTool(Hit hit, ClipData clip, TrackData track, bool noSnap)
+        {
+            if (!S.IsClipSelected(clip.uid)) S.SelectClip(clip.uid, false);
+            _drag = hit == Hit.Slip ? Drag.Slip : hit == Hit.Slide ? Drag.Slide : hit == Hit.Roll ? Drag.Roll : hit == Hit.RippleLeft ? Drag.RippleLeft : Drag.RippleRight;
+            _dragClip = clip.uid;
+            _dragPartner = hit == Hit.Roll ? _hitPartner : null;
+            _dragTrack = track.uid;
+            _snapshot.Clear();
+            var exclude = new HashSet<string>();
+            foreach (var c in track.clips) { _snapshot[c.uid] = c.Clone(false); exclude.Add(c.uid); }
+            _snap.Build(R, V, S.Playhead, exclude, S.Snap && !noSnap);
+            S.BeginContinuous(_drag == Drag.Slip ? "Slip Clip" : _drag == Drag.Slide ? "Slide Clip" : _drag == Drag.Roll ? "Roll Edit" : "Ripple Trim");
+        }
+
         private void OnPointerMove(PointerMoveEvent e)
         {
             var pos = (Vector2)e.localPosition;
@@ -589,11 +716,21 @@ namespace AudioCreationStudio.EditorUI
                 var hit = HitTest(pos, out var clip, out var track, out int pi);
                 string hc = clip?.uid;
                 int hat = hit == Hit.AutoPoint ? R.tracks.IndexOf(track) : -1;
-                if (hc != _hoverClip || hit != _hoverHit || hat != _hoverAutoTrack || pi != _hoverAutoPoint)
+                long blade = -1;
+                if (hit == Hit.Blade)
                 {
-                    _hoverClip = hc; _hoverHit = hit; _hoverAutoTrack = hat; _hoverAutoPoint = pi;
-                    EnableInClassList("acs-cursor-resize", hit == Hit.TrimLeft || hit == Hit.TrimRight);
-                    EnableInClassList("acs-cursor-move", hit == Hit.AutoPoint || hit == Hit.FadeIn || hit == Hit.FadeOut);
+                    _snap.Build(R, V, S.Playhead, null, S.Snap && !e.ctrlKey);
+                    blade = _snap.Snap(V.SampleAtX(pos.x, SR), out _);
+                }
+                if (hc != _hoverClip || hit != _hoverHit || hat != _hoverAutoTrack || pi != _hoverAutoPoint || _hitPartner != _hoverPartner || blade != _bladeSample || e.shiftKey != _bladeAll)
+                {
+                    _hoverClip = hc; _hoverHit = hit; _hoverAutoTrack = hat; _hoverAutoPoint = pi; _hoverPartner = _hitPartner;
+                    _bladeSample = blade; _bladeAll = e.shiftKey;
+                    EnableInClassList("acs-cursor-resize", hit == Hit.TrimLeft || hit == Hit.TrimRight || hit == Hit.RippleLeft || hit == Hit.RippleRight);
+                    EnableInClassList("acs-cursor-move", hit == Hit.AutoPoint || hit == Hit.FadeIn || hit == Hit.FadeOut || hit == Hit.Slide);
+                    EnableInClassList("acs-cursor-slip", hit == Hit.Slip);
+                    EnableInClassList("acs-cursor-roll", hit == Hit.Roll);
+                    EnableInClassList("acs-cursor-blade", hit == Hit.Blade);
                     Refresh();
                 }
                 return;
@@ -639,6 +776,13 @@ namespace AudioCreationStudio.EditorUI
                     break;
                 }
                 case Drag.AutoPoint: MoveAutoPoint(pos, sample, e.shiftKey); break;
+                case Drag.Slip:
+                case Drag.Slide:
+                case Drag.Roll:
+                case Drag.RippleLeft:
+                case Drag.RippleRight:
+                    DoTrimTool(sample, pos);
+                    break;
             }
             Refresh();
             e.StopPropagation();
@@ -680,6 +824,136 @@ namespace AudioCreationStudio.EditorUI
             }, trackDelta != 0 ? StudioChange.Structure : StudioChange.Content, this);
         }
 
+        private long SnapTo(long s)
+        {
+            long v = _snap.Snap(s, out bool did);
+            if (did) _snapLine = v;
+            return v;
+        }
+
+        /// <summary>Re-applies the active trim-tool drag from the snapshot taken at mouse-down, so it is exact and reversible.</summary>
+        private void DoTrimTool(long sample, Vector2 pos)
+        {
+            if (!_snapshot.TryGetValue(_dragClip, out var o)) return;
+            long delta = sample - _dragStartSample;
+            var d = _drag;
+            long target = 0;
+            switch (d)
+            {
+                case Drag.Slide:
+                {
+                    long cand = o.startSample + delta;
+                    long s1 = _snap.Snap(cand, out bool a), s2 = _snap.Snap(cand + o.lengthSamples, out bool b);
+                    if (a && (!b || Math.Abs(s1 - cand) <= Math.Abs(s2 - cand - o.lengthSamples))) { target = s1; _snapLine = s1; }
+                    else if (b) { target = s2 - o.lengthSamples; _snapLine = s2; }
+                    else target = cand;
+                    break;
+                }
+                case Drag.Roll:
+                case Drag.RippleRight: target = SnapTo(o.EndSample + delta); break;
+                case Drag.RippleLeft: target = SnapTo(o.startSample + delta); break;
+            }
+            string info = null;
+            S.Continuous(r =>
+            {
+                var t = r.FindTrack(_dragTrack);
+                if (t == null) return;
+                foreach (var c in t.clips) if (_snapshot.TryGetValue(c.uid, out var snap)) TimelineEditing.RestorePlacement(c, snap);
+                var clip = r.FindClip(_dragClip);
+                if (clip == null) return;
+                int rate = r.sampleRate;
+                switch (d)
+                {
+                    case Drag.Slip:
+                    {
+                        double step = clip.SourceStep(rate);
+                        TimelineEditing.Slip(clip, o.sourceOffset - (long)Math.Round(delta * step), rate);
+                        long moved = (long)Math.Round((o.sourceOffset - clip.sourceOffset) / step);
+                        info = $"Slip {FormatDelta(moved)}   ·   in {FormatTime(clip.sourceOffset / (double)Math.Max(1, clip.sourceSampleRate))}";
+                        break;
+                    }
+                    case Drag.Slide:
+                        info = $"Slide {FormatDelta(TimelineEditing.Slide(t, clip, target, rate))}";
+                        break;
+                    case Drag.Roll:
+                    {
+                        var right = r.FindClip(_dragPartner);
+                        if (right == null) return;
+                        info = $"Roll {FormatDelta(TimelineEditing.Roll(clip, right, target, rate) - o.EndSample)}";
+                        break;
+                    }
+                    case Drag.RippleLeft:
+                        info = $"Ripple {FormatDelta(-TimelineEditing.RippleTrimStart(t, clip, target, rate))}";
+                        break;
+                    case Drag.RippleRight:
+                        info = $"Ripple {FormatDelta(TimelineEditing.RippleTrimEnd(t, clip, target, rate))}";
+                        break;
+                }
+            }, StudioChange.Content, this);
+            ShowInfo(info, pos);
+        }
+
+        private void ShowInfo(string text, Vector2 pos)
+        {
+            if (string.IsNullOrEmpty(text)) { _info.style.display = DisplayStyle.None; return; }
+            _info.text = text;
+            _info.style.left = Mathf.Clamp(pos.x + 14, 0, Mathf.Max(0, contentRect.width - 220));
+            _info.style.top = Mathf.Max(0, pos.y - 28);
+            _info.style.display = DisplayStyle.Flex;
+        }
+
+        private string FormatDelta(long samples)
+        {
+            double sec = Math.Abs(samples / (double)SR);
+            string sign = samples > 0 ? "+" : samples < 0 ? "−" : "±";
+            return sec < 1 ? $"{sign}{sec * 1000:0.0} ms" : $"{sign}{sec:0.000} s";
+        }
+
+        private static string FormatTime(double sec) => $"{(int)(sec / 60):00}:{sec % 60:00.000}";
+
+        private static bool IsTrimToolDrag(Drag d) => d == Drag.Slip || d == Drag.Slide || d == Drag.Roll || d == Drag.RippleLeft || d == Drag.RippleRight;
+
+        /// <summary>Dynamic Trim: plays the timeline around an edit (the whole clip for slip/slide, ±1 s for cuts).</summary>
+        private void Audition(Drag d, string clipUid)
+        {
+            var c = R.FindClip(clipUid);
+            if (c == null) return;
+            long pad = SR / 2;
+            switch (d)
+            {
+                case Drag.Roll:
+                case Drag.RippleRight: _ctx.Transport.PlayRange(c.EndSample - SR, c.EndSample + SR, "Dynamic Trim · cut"); break;
+                case Drag.RippleLeft: _ctx.Transport.PlayRange(c.startSample - pad, c.startSample + SR + pad, "Dynamic Trim · head"); break;
+                default: _ctx.Transport.PlayRange(c.startSample - pad, c.EndSample + pad, "Dynamic Trim · clip"); break;
+            }
+        }
+
+        /// <summary>
+        /// Keyboard nudge for the selected clips (, and .): moves them in Selection mode, slips their content in
+        /// Trim / Dynamic Trim mode (Dynamic Trim also auditions the result). Returns false when nothing is selected.
+        /// </summary>
+        public bool Nudge(int direction, bool big)
+        {
+            var sel = new List<string>(S.SelectedClips);
+            if (sel.Count == 0) return false;
+            long amount = (long)Math.Round(SR * (big ? 0.1 : 0.01)) * Math.Sign(direction);
+            var tool = S.Tool;
+            bool slip = tool == EditTool.Trim || tool == EditTool.DynamicTrim;
+            if (tool == EditTool.Blade) return false;
+            S.Modify(slip ? "Slip Clips" : "Nudge Clips", r =>
+            {
+                foreach (var u in sel)
+                {
+                    var c = r.FindClip(u);
+                    if (c == null) continue;
+                    if (slip) TimelineEditing.Slip(c, c.sourceOffset - (long)Math.Round(amount * c.SourceStep(r.sampleRate)), r.sampleRate);
+                    else c.startSample = Math.Max(0, c.startSample + amount);
+                }
+            });
+            if (tool == EditTool.DynamicTrim) Audition(Drag.Slip, sel[sel.Count - 1]);
+            return true;
+        }
+
         private void OnPointerUp(PointerUpEvent e)
         {
             if (_drag == Drag.None) return;
@@ -691,6 +965,9 @@ namespace AudioCreationStudio.EditorUI
         private void FinishDrag()
         {
             if (_drag == Drag.None) return;
+            var finished = _drag;
+            bool moved = _dragMoved;
+            string editedClip = _dragClip;
             if (_drag != Drag.Scrub) S.EndContinuous();
             if (_drag == Drag.Move && !_dragMoved && !_altDuplicate && _origStarts.Count > 1)
             {
@@ -701,8 +978,13 @@ namespace AudioCreationStudio.EditorUI
             _snapLine = null;
             _autoPointIndex = -1;
             _altDuplicate = false;
+            _snapshot.Clear();
+            _dragPartner = null;
+            _dragTrack = null;
+            _info.style.display = DisplayStyle.None;
             S.Notify(StudioChange.Content, null);
             Refresh();
+            if (moved && IsTrimToolDrag(finished) && S.Tool == EditTool.DynamicTrim) Audition(finished, editedClip);
         }
 
         private void OnWheel(WheelEvent e)

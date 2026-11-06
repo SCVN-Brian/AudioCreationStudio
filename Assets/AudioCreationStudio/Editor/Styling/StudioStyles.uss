@@ -173,6 +173,14 @@
 .acs-canvas__labels { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
 .acs-cursor-resize { cursor: resize-horizontal; }
 .acs-cursor-move { cursor: move-arrow; }
+.acs-cursor-slip { cursor: slide-arrow; }
+.acs-cursor-roll { cursor: split-resize-left-right; }
+.acs-cursor-blade { cursor: text; }
+.acs-draginfo {
+    position: absolute; height: 20px; padding: 0 8px; font-size: 11px; -unity-font-style: bold; color: var(--text);
+    background-color: var(--elevated-hi); border-radius: 4px; border-width: 1px; border-color: var(--accent);
+    -unity-text-align: middle-left; white-space: nowrap;
+}
 .acs-cliplabel {
     position: absolute; height: 16px; font-size: 10px; -unity-font-style: bold; color: #F4F7FB;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; -unity-text-align: middle-left;

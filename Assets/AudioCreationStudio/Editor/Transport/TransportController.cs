@@ -147,6 +147,27 @@ namespace AudioCreationStudio.EditorUI
             Begin(target, label);
         }
 
+        /// <summary>
+        /// Renders the full mix now and plays only [start, end) with the playhead following; used by Dynamic Trim to
+        /// audition an edit. The playhead returns to <paramref name="start"/> afterwards.
+        /// </summary>
+        public void PlayRange(long start, long end, string label)
+        {
+            var res = _render.RenderNow(RenderScope.FullMix);
+            if (res?.Master == null || res.Master.Frames == 0) { PlaybackProblem?.Invoke("Nothing to play around this edit."); return; }
+            var full = res.Master;
+            start = Math.Max(0, Math.Min(start, full.Frames - 1));
+            end = Math.Min(Math.Max(end, start + 1), full.Frames);
+            if (end - start < 64) return;
+            _buffer = full.Slice((int)start, (int)(end - start));
+            _timelineOffset = start;
+            _playStart = start;
+            _player.Play(_buffer, 0, false);
+            _driveTimeline = true;
+            // Clip target: Seek/live re-render never turn this short audition into full-mix playback.
+            Begin(PreviewTarget.Clip, label);
+        }
+
         /// <summary>Plays an arbitrary buffer (generator, loop, variation previews) without moving the timeline playhead.</summary>
         public void PlayBuffer(AudioBuffer buffer, bool loop, string label)
         {

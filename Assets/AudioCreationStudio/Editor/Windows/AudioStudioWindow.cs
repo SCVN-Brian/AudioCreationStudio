@@ -43,6 +43,7 @@ namespace AudioCreationStudio.EditorUI
         // Toolbar / status widgets
         private Label _recipeName, _time, _total, _peak, _renderStatus, _formatPill, _exportStatus, _playingLabel;
         private StudioButton _playBtn, _loopBtn, _snapBtn, _undoBtn, _redoBtn;
+        private readonly Dictionary<EditTool, StudioButton> _toolBtns = new Dictionary<EditTool, StudioButton>();
         private LevelMeterElement _masterMeter;
         private ValueSlider _masterGain;
         private Label _masterGainLabel;
@@ -221,6 +222,21 @@ namespace AudioCreationStudio.EditorUI
             _snapBtn = new StudioButton(Icon.Magnet, null, () => { _session.Snap = !_session.Snap; _snapBtn.Toggled = _session.Snap; }, "Snap to grid, clip edges and playhead (hold Ctrl while dragging to bypass)");
             _snapBtn.Toggled = _state.snap;
             edit.Add(_snapBtn);
+
+            // Edit tools (DaVinci Resolve style)
+            var tools = Group(bar);
+            tools.AddToClassList("acs-group--edit");
+            void ToolBtn(EditTool t, Icon icon, string tip)
+            {
+                var b = new StudioButton(icon, null, () => SetTool(t), tip);
+                _toolBtns[t] = b;
+                tools.Add(b);
+            }
+            ToolBtn(EditTool.Select, Icon.Pointer, "Selection Mode (A)\nSelect, move, trim edges, fades");
+            ToolBtn(EditTool.Trim, Icon.TrimTool, "Trim Edit Mode (T)\nBody: slip the audio inside the clip · Name bar: slide between neighbours\nEdge: ripple trim · Cut between touching clips: roll");
+            ToolBtn(EditTool.Blade, Icon.Blade, "Blade Edit Mode (B)\nClick to cut · Shift-click cuts every track");
+            ToolBtn(EditTool.DynamicTrim, Icon.DynamicTrim, "Dynamic Trim Mode (W)\nLike Trim, and every edit is auditioned\n, / . slip the selected clip by 10 ms (Shift: 100 ms)");
+            UpdateToolButtons();
 
             bar.Add(UIUtil.Spacer());
 
@@ -535,6 +551,20 @@ namespace AudioCreationStudio.EditorUI
             if (error) Debug.LogWarning("[Audio Creation Studio] " + text);
         }
 
+        // ------------------------------------------------------------ Edit tools
+
+        private void SetTool(EditTool t)
+        {
+            _session.Tool = t;
+            UpdateToolButtons();
+            _arrange?.Canvas.Refresh();
+        }
+
+        private void UpdateToolButtons()
+        {
+            foreach (var kv in _toolBtns) kv.Value.Toggled = kv.Key == _session.Tool;
+        }
+
         // ------------------------------------------------------------ Keyboard
 
         private void OnKeyDown(KeyDownEvent e)
@@ -556,6 +586,14 @@ namespace AudioCreationStudio.EditorUI
                     break;
                 case KeyCode.Home: _transport.Seek(0); break;
                 case KeyCode.S when !mod: _ctx.Commands.SplitAtPlayhead(); break;
+                case KeyCode.A when !mod: SetTool(EditTool.Select); break;
+                case KeyCode.T when !mod: SetTool(EditTool.Trim); break;
+                case KeyCode.B when !mod: SetTool(EditTool.Blade); break;
+                case KeyCode.W when !mod: SetTool(EditTool.DynamicTrim); break;
+                case KeyCode.Comma when !mod:
+                case KeyCode.Period when !mod:
+                    if (_state.activeTab != "Arrange" || _arrange == null || !_arrange.Canvas.Nudge(e.keyCode == KeyCode.Period ? 1 : -1, e.shiftKey)) return;
+                    break;
                 case KeyCode.L when !mod: _session.LoopPlayback = !_session.LoopPlayback; _loopBtn.Toggled = _session.LoopPlayback; break;
                 case KeyCode.Delete when !mod:
                 case KeyCode.Backspace when !mod:

@@ -7,7 +7,8 @@ namespace AudioCreationStudio.EditorUI
     {
         None, Play, Pause, Stop, Loop, Plus, Trash, Undo, Redo, Save, Open, New, Import, Export, Gear, Magnet,
         Scissors, Duplicate, Dice, Waveform, Mixer, Sine, Layers, Grid, Power, ChevronDown, ChevronRight, Up, Down,
-        Curve, Speaker, Close, Search, More, Check, Warning, Folder, Logo, Skip, Copy
+        Curve, Speaker, Close, Search, More, Check, Warning, Folder, Logo, Skip, Copy,
+        Pointer, TrimTool, Blade, DynamicTrim
     }
 
     /// <summary>Resolution-independent vector icons drawn with Painter2D (crisp on high-DPI displays).</summary>
@@ -144,6 +145,29 @@ namespace AudioCreationStudio.EditorUI
                     Ring(0.5f, 0.5f, 0.24f, 0, 180);
                     Seg(0.26f, 0.5f, 0.26f, 0.2f); Seg(0.74f, 0.5f, 0.74f, 0.2f);
                     Seg(0.2f, 0.28f, 0.32f, 0.28f); Seg(0.68f, 0.28f, 0.8f, 0.28f);
+                    break;
+                case Icon.Pointer:
+                    Poly(true, P(0.3f, 0.14f), P(0.3f, 0.8f), P(0.45f, 0.66f), P(0.56f, 0.88f), P(0.65f, 0.84f), P(0.54f, 0.62f), P(0.74f, 0.62f));
+                    break;
+                case Icon.TrimTool:
+                    Box(0.1f, 0.3f, 0.8f, 0.4f, 0.04f, false);
+                    Box(0.45f, 0.2f, 0.1f, 0.6f, 0.03f, true);
+                    Poly(false, P(0.33f, 0.42f), P(0.25f, 0.5f), P(0.33f, 0.58f));
+                    Poly(false, P(0.67f, 0.42f), P(0.75f, 0.5f), P(0.67f, 0.58f));
+                    break;
+                case Icon.Blade:
+                    Box(0.1f, 0.3f, 0.8f, 0.4f, 0.06f, false);
+                    for (int i = 0; i < 6; i++) Seg(0.2f + i * 0.12f, 0.3f, 0.2f + i * 0.12f, 0.38f);
+                    for (int i = 0; i < 6; i++) Seg(0.2f + i * 0.12f, 0.62f, 0.2f + i * 0.12f, 0.7f);
+                    Box(0.3f, 0.46f, 0.4f, 0.08f, 0.04f, true);
+                    break;
+                case Icon.DynamicTrim:
+                    Ring(0.5f, 0.5f, 0.38f, 140, 220);
+                    Ring(0.5f, 0.5f, 0.38f, -40, 40);
+                    Seg(0.5f, 0.3f, 0.5f, 0.78f);
+                    Poly(true, P(0.43f, 0.22f), P(0.57f, 0.22f), P(0.5f, 0.32f));
+                    Poly(false, P(0.36f, 0.42f), P(0.28f, 0.5f), P(0.36f, 0.58f));
+                    Poly(false, P(0.64f, 0.42f), P(0.72f, 0.5f), P(0.64f, 0.58f));
                     break;
                 case Icon.Scissors:
                     Ring(0.3f, 0.72f, 0.12f, 0, 360); Ring(0.7f, 0.72f, 0.12f, 0, 360);

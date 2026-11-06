@@ -4,6 +4,26 @@ All notable changes to this package are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-06
+
+### Added
+- `README.md`: installation guide (Vietnamese) covering install via `manifest.json` or Package Manager, updating, settings, export formats, edit tools and troubleshooting.
+- **Preferences ▸ Audio Creation Studio** (also *Tools ▸ Audio Creation Studio ▸ Settings…*): one page for the ElevenLabs API key and the ffmpeg path. Both are stored per user in EditorPrefs and never written into the project.
+- Using a feature whose setting is missing now logs a `Debug.LogWarning` that says where to set it. This applies to AI generation without an API key, and to MP3/OGG export without ffmpeg.
+
+- **Timeline edit tools** (DaVinci Resolve style). Toolbar buttons and keys **A / T / B / W**:
+  - **Selection**: works as before.
+  - **Trim Edit**: *slip* (drag the body to move the audio inside the clip, with the full source shown behind it), *slide* (drag the name bar; the touching neighbours adjust), *ripple trim* (drag an edge; later clips follow) and *roll* (drag the cut between two touching clips).
+  - **Blade**: click to cut; Shift-click cuts every track.
+  - **Dynamic Trim**: the Trim Edit gestures, plus each edit is played back automatically.
+  - `,` / `.` nudge the selected clips by 10 ms (Shift: 100 ms). In Selection mode they move the clips; in the trim modes they slip the audio.
+  - While dragging, a readout shows the size of the edit.
+  - New pure operations in `TimelineEditing`: `Slip`, `Slide`, `Roll`, `RippleTrimStart/End`, `SplitAll`, plus `TimelineToolsTests` (13 tests).
+
+### Changed
+- The ElevenLabs panel no longer has its own API key field. Its *Settings* button opens the Preferences page, and keys saved earlier still work.
+- The Export panel only shows the ffmpeg status, with a button that opens Preferences.
+
 ## [1.1.0] - 2026-11-06
 
 ### Added

@@ -69,6 +69,9 @@ namespace AudioCreationStudio.EditorUI
             sheet.Add(foot);
 
             _runner.Completed += (results, ex, cancelled) => ShowResults(results, ex, cancelled);
+            Action refresh = () => { if (IsOpen) Build(); };
+            RegisterCallback<AttachToPanelEvent>(_ => AudioStudioSettings.Changed += refresh);
+            RegisterCallback<DetachFromPanelEvent>(_ => AudioStudioSettings.Changed -= refresh);
             style.display = DisplayStyle.None;
             schedule.Execute(UpdateProgress).Every(50);
         }
@@ -169,24 +172,16 @@ namespace AudioCreationStudio.EditorUI
             _exportBtn.tooltip = $"Render and write the {AudioFormats.Label(e.fileType)} file";
         }
 
-        /// <summary>Shows which ffmpeg MP3/OGG export will use, with a picker. The path is stored per machine (EditorPrefs).</summary>
+        /// <summary>Shows which ffmpeg MP3/OGG export will use. The path itself is set in Preferences ▸ Audio Creation Studio.</summary>
         private VisualElement FfmpegRow()
         {
-            string found = ExportService.ResolveFfmpeg();
-            var row = Fields.Text("ffmpeg", string.IsNullOrEmpty(ExportService.FfmpegPath) ? (found ?? "") : ExportService.FfmpegPath, v => { ExportService.FfmpegPath = v.Trim(); Build(); });
-            row.Add(new StudioButton(Icon.Folder, null, () =>
-            {
-                string p = EditorUtility.OpenFilePanel("Locate ffmpeg", string.IsNullOrEmpty(found) ? "" : System.IO.Path.GetDirectoryName(found), "");
-                if (string.IsNullOrEmpty(p)) return;
-                ExportService.FfmpegPath = p;
-                Build();
-            }, "Browse for the ffmpeg executable", "acs-btn--sm"));
-            var box = new VisualElement();
-            box.Add(row);
-            box.Add(UIUtil.Label(found != null
-                ? $"✓ Encoding with {found}"
-                : "⚠ ffmpeg not found. Install it (macOS: brew install ffmpeg · Windows: winget install ffmpeg) or browse to it. WAV/AIFF/FLAC don't need it.", "acs-hint"));
-            return box;
+            string found = AudioStudioSettings.ResolveFfmpeg();
+            var row = new VisualElement();
+            row.AddToClassList("acs-row");
+            row.Add(UIUtil.Label(found != null ? $"✓ ffmpeg: {found}" : "⚠ ffmpeg not found (needed for MP3/OGG)", "acs-hint"));
+            row.Add(UIUtil.Spacer());
+            row.Add(new StudioButton(Icon.Gear, "Settings", AudioStudioSettings.Open, "Set the ffmpeg path in Preferences ▸ Audio Creation Studio", "acs-btn--sm"));
+            return row;
         }
 
         private string DefaultName()
@@ -209,8 +204,8 @@ namespace AudioCreationStudio.EditorUI
             try
             {
                 string name = string.IsNullOrEmpty(e.fileName) ? DefaultName() : e.fileName;
-                if (AudioFormats.IsLossy(e.fileType) && ExportService.ResolveFfmpeg() == null)
-                    throw new InvalidOperationException($"{AudioFormats.Label(e.fileType)} export needs ffmpeg, which was not found. Install it or set its path above.");
+                if (AudioFormats.IsLossy(e.fileType) && AudioStudioSettings.RequireFfmpeg(AudioFormats.Label(e.fileType)) == null)
+                    throw new InvalidOperationException($"{AudioFormats.Label(e.fileType)} export needs ffmpeg, which was not found. Set it in Preferences ▸ Audio Creation Studio.");
                 string path = ExportService.MakePath(e.outputFolder, name, e.fileType);
                 var opts = ExportOptions.From(e, e.scope == ExportScope.LoopRegion);
                 var item = ExportService.CreateItem(_ctx, e.scope, opts, path);
