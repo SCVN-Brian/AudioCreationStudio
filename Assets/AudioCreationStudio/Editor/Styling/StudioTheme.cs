@@ -47,6 +47,8 @@ namespace AudioCreationStudio.EditorUI
             return Success;
         }
 
+        /// <summary>GUID of Editor/Styling/StudioStyles.uss (from its .meta).</summary>
+        private const string StyleSheetGuid = "e961269b9213a4890af0d8251ecfa7fb";
         private static StyleSheet _sheet;
 
         public static StyleSheet StyleSheet
@@ -54,14 +56,19 @@ namespace AudioCreationStudio.EditorUI
             get
             {
                 if (_sheet != null) return _sheet;
-                var guids = UnityEditor.AssetDatabase.FindAssets("StudioStyles t:StyleSheet");
-                foreach (var g in guids)
+                // By GUID first: works the same in Assets/ and as a UPM package (Packages/com.supercent.audiocreationstudio/...).
+                var byGuid = UnityEditor.AssetDatabase.GUIDToAssetPath(StyleSheetGuid);
+                if (!string.IsNullOrEmpty(byGuid)) _sheet = UnityEditor.AssetDatabase.LoadAssetAtPath<StyleSheet>(byGuid);
+                if (_sheet != null) return _sheet;
+                foreach (var g in UnityEditor.AssetDatabase.FindAssets("StudioStyles t:StyleSheet"))
                 {
                     var path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
-                    if (!path.Contains("AudioCreationStudio")) continue;
+                    // Package folders are lower-case (com.supercent.audiocreationstudio), so compare case-insensitively.
+                    if (path.IndexOf("audiocreationstudio", System.StringComparison.OrdinalIgnoreCase) < 0) continue;
                     _sheet = UnityEditor.AssetDatabase.LoadAssetAtPath<StyleSheet>(path);
                     if (_sheet != null) break;
                 }
+                if (_sheet == null) UnityEngine.Debug.LogError("[Audio Creation Studio] StudioStyles.uss not found: the window will be unstyled. Reinstall the package.");
                 return _sheet;
             }
         }

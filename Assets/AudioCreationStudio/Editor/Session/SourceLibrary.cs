@@ -66,7 +66,8 @@ namespace AudioCreationStudio.EditorUI
             error = null;
             if (!string.IsNullOrEmpty(assetPath) && assetPath.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
             {
-                string full = Path.GetFullPath(assetPath);
+                // Packages/... asset paths of git/registry packages live in Library/PackageCache: resolve the real file.
+                string full = Path.GetFullPath(FileUtil.GetPhysicalPath(assetPath));
                 try { return WavDecoder.Decode(full, out _); }
                 catch (Exception ex) { error = $"WAV decode failed ({ex.Message}); trying AudioClip data."; }
             }

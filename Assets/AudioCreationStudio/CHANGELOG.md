@@ -4,6 +4,12 @@ All notable changes to this package are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-11-06
+
+### Fixed
+- **The studio window had no styling when installed as a package** (everything stacked vertically). The stylesheet lookup matched `AudioCreationStudio` case-sensitively, but the package folder is `Packages/com.supercent.audiocreationstudio`. The stylesheet is now loaded by GUID. Tested with a git-URL install on Unity 2022.3.16 and 2023.2.20.
+- WAV sources inside the package (the demo audio) are now read from their real location in `Library/PackageCache`, instead of failing and falling back to Unity's decoder.
+
 ## [1.2.1] - 2026-11-06
 
 ### Added
