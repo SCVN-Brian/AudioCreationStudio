@@ -4,6 +4,15 @@ All notable changes to this package are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-11-06
+
+### Added
+- Documentation: Vietnamese introduction (`GioiThieu_AudioCreationStudio.md`), an architecture diagram and screenshots.
+- Sample ElevenLabs takes in `Generated/ElevenLabs/`.
+
+### Changed
+- Demo recipes Coin Pickup, UI Click and UI Error, and the exported `UI_Error.wav`.
+
 ## [1.2.0] - 2026-11-06
 
 ### Added

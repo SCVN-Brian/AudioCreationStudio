@@ -16,7 +16,7 @@ Audio Creation Studio là một "mini DAW" chạy ngay trong Unity Editor để 
 **Cách 1: sửa `manifest.json`.** Mở `Packages/manifest.json` trong project của bạn, thêm dòng này vào `"dependencies"`:
 
 ```json
-"com.supercent.audiocreationstudio": "https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.2.0"
+"com.supercent.audiocreationstudio": "https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.2.1"
 ```
 
 Ví dụ:
@@ -24,7 +24,7 @@ Ví dụ:
 ```json
 {
   "dependencies": {
-    "com.supercent.audiocreationstudio": "https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.2.0",
+    "com.supercent.audiocreationstudio": "https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.2.1",
     "com.unity.modules.audio": "1.0.0"
   }
 }
@@ -35,15 +35,15 @@ Quay lại Unity, chờ Unity tải và biên dịch xong.
 **Cách 2: dùng Package Manager.** Vào **Window ▸ Package Manager**, bấm **+ ▸ Add package from git URL…**, dán:
 
 ```
-https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.2.0
+https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.2.1
 ```
 
 Lưu ý:
 - Phần `?path=Assets/AudioCreationStudio` là **bắt buộc**, vì package nằm trong thư mục con của repo.
-- Phần `#v1.2.0` là version, tức là tag trên GitHub. Không ghi thì Unity lấy code mới nhất trên `main`, không nên dùng cho project thật.
+- Phần `#v1.2.1` là version, tức là tag trên GitHub. Không ghi thì Unity lấy code mới nhất trên `main`, không nên dùng cho project thật.
 
 ## 2. Cập nhật lên bản mới
-Đổi tag cuối dòng (ví dụ `#v1.2.0` thành `#v1.3.0`) trong `manifest.json`, rồi quay lại Unity. Xem các version và thay đổi trong [CHANGELOG.md](CHANGELOG.md).
+Đổi tag cuối dòng (ví dụ `#v1.2.1` thành `#v1.3.0`) trong `manifest.json`, rồi quay lại Unity. Xem các version và thay đổi trong [CHANGELOG.md](CHANGELOG.md).
 
 Unity ghi lại commit đã tải trong `Packages/packages-lock.json`. Nếu đổi tag rồi mà Unity vẫn giữ bản cũ, xóa mục `com.supercent.audiocreationstudio` trong file đó rồi quay lại Unity.
 
