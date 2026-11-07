@@ -1111,8 +1111,9 @@ namespace AudioCreationStudio.EditorUI
                 menu.AddItem(new GUIContent("Remove Fades"), false, () =>
                     S.Modify("Remove Fades", r => { var c = r.FindClip(clip.uid); if (c != null) { c.fadeIn.lengthSamples = 0; c.fadeOut.lengthSamples = 0; } }));
                 menu.AddSeparator("");
-                if (clip.sourceKind == ClipSourceKind.Generator)
-                    menu.AddItem(new GUIContent("Edit in Generator"), false, () => _ctx.EditGenerator?.Invoke(clip.generator, clip.uid));
+                menu.AddItem(new GUIContent("Edit in Custom Generate"), false, () => _ctx.EditClipInGenerator?.Invoke(clip.uid));
+                if (StudioCommands.CanRevertToAudio(clip))
+                    menu.AddItem(new GUIContent("Revert to Original Audio"), false, () => _ctx.Commands.RevertToOriginalAudio(clip.uid));
                 menu.AddItem(new GUIContent("Open in Loop Editor"), false, () => _ctx.OpenLoopEditorForClip?.Invoke(clip.uid));
                 if (clip.sourceClip != null)
                     menu.AddItem(new GUIContent("Reveal Source Asset"), false, () => EditorGUIUtility.PingObject(clip.sourceClip));

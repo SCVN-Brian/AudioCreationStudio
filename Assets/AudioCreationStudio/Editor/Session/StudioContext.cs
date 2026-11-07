@@ -22,6 +22,10 @@ namespace AudioCreationStudio.EditorUI
         public Action<string, bool> Toast;
         public Action<GeneratorSettings, string> EditGenerator;
         public Action<string> OpenLoopEditorForClip;
+        /// <summary>Opens the Custom Generate tab with this clip as its Sample source.</summary>
+        public Action<AudioClip> EditSampleInGenerator;
+        /// <summary>Opens a timeline clip in Custom Generate, bound so edits update the clip (audio clips are converted first).</summary>
+        public Action<string> EditClipInGenerator;
 
         public RecipeData Data => Session.Data;
         public int SampleRate => Session.Data.sampleRate;
@@ -233,6 +237,86 @@ namespace AudioCreationStudio.EditorUI
             }, StudioChange.Structure);
             S.SelectClip(created.uid, false);
             return created;
+        }
+
+        // ------------------------------------------------------------------ Edit a timeline clip in Custom Generate
+
+        /// <summary>
+        /// Turns an audio clip on the timeline into a Sample-generator clip that plays the same audio (same source
+        /// offset, length, rate, gain, pan, fades and automation), so Custom Generate can edit it in place. The original
+        /// AudioClip reference is kept for <see cref="RevertToOriginalAudio"/>; the change is one undo step.
+        /// Returns the clip's generator settings, or null (with a toast) when it cannot be converted.
+        /// </summary>
+        public GeneratorSettings ConvertToSampleGenerator(string uid)
+        {
+            var c = S.Data.FindClip(uid);
+            if (c == null) return null;
+            if (c.sourceKind == ClipSourceKind.Generator) return c.generator;
+            if (c.sourceClip == null) { _ctx.Toast?.Invoke("This clip has no source audio to edit", true); return null; }
+            if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(c.sourceClip, out string guid, out long _))
+            {
+                _ctx.Toast?.Invoke("The clip's audio must be an asset in the project", true);
+                return null;
+            }
+            int sr = SR;
+            double srcRate = Math.Max(1, c.sourceSampleRate);
+            // Source seconds the clip plays: timeline length × source step (covers playback rate); loops use the rest of the file.
+            double seconds = c.loop ? Math.Max(0, c.sourceFrames - c.sourceOffset) / srcRate : c.lengthSamples * c.SourceStep(sr) / srcRate;
+            var g = GeneratorView.NeutralSampleSettings();
+            g.sampleGuid = guid;
+            g.sampleName = c.sourceClip.name;
+            g.presetName = c.DisplayName;
+            g.sampleStart = (float)(c.sourceOffset / srcRate);
+            g.durationSeconds = Mathf.Clamp((float)seconds, 0.02f, ProceduralSynth.MaxDurationSeconds);
+            // The sample plays mono and a mono clip is panned centre at -3 dB; a stereo source played at unity per side,
+            // so lift it by the pan law to keep the same loudness.
+            if (c.sourceChannels > 1) g.volumeDb = 3.0103f;
+            bool trimmed = seconds > ProceduralSynth.MaxDurationSeconds;
+            bool stereo = c.sourceChannels > 1;
+            S.Modify("Edit Clip in Custom Generate", d =>
+            {
+                var cc = d.FindClip(uid);
+                if (cc == null) return;
+                long frames = Math.Max(1, (long)Math.Round(g.durationSeconds * d.sampleRate));
+                cc.sourceKind = ClipSourceKind.Generator;
+                cc.generator = g.Clone();
+                cc.name = g.presetName;
+                cc.sourceSampleRate = d.sampleRate;
+                cc.sourceFrames = frames;
+                cc.sourceChannels = 1;
+                cc.sourceOffset = 0;
+                if (!cc.loop) cc.lengthSamples = Math.Min(cc.lengthSamples, Math.Max(1, (long)Math.Floor(frames / cc.SourceStep(d.sampleRate))));
+            }, StudioChange.Structure | StudioChange.Content);
+            _ctx.Toast?.Invoke("Clip is now editable in Custom Generate" + (stereo ? " (played mono)" : "") + (trimmed ? $" · limited to {ProceduralSynth.MaxDurationSeconds:0} s" : "") +
+                               ". Cmd/Ctrl+Z or right-click ▸ Revert to Original Audio restores it.", false);
+            return S.Data.FindClip(uid)?.generator;
+        }
+
+        /// <summary>True for a clip made by <see cref="ConvertToSampleGenerator"/> that still knows its original audio.</summary>
+        public static bool CanRevertToAudio(ClipData c) =>
+            c != null && c.sourceKind == ClipSourceKind.Generator && c.sourceClip != null && c.generator != null && c.generator.waveform == OscillatorWaveform.Sample;
+
+        /// <summary>Turns a converted clip back into a plain audio clip playing the original file (generator edits are dropped).</summary>
+        public void RevertToOriginalAudio(string uid)
+        {
+            var c = S.Data.FindClip(uid);
+            if (!CanRevertToAudio(c)) return;
+            if (!_ctx.Library.TryGetClip(c.sourceClip, out var buf, out _, out var err)) { _ctx.Toast?.Invoke(err, true); return; }
+            float start = c.generator.sampleStart;
+            S.Modify("Revert to Original Audio", d =>
+            {
+                var cc = d.FindClip(uid);
+                if (cc == null) return;
+                cc.sourceKind = ClipSourceKind.AudioClip;
+                cc.name = null;
+                cc.sourceSampleRate = buf.SampleRate;
+                cc.sourceFrames = buf.Frames;
+                cc.sourceChannels = buf.Channels;
+                cc.sourceOffset = Math.Max(0, Math.Min(buf.Frames - 1, (long)Math.Round(start * buf.SampleRate)));
+                if (!cc.loop) cc.lengthSamples = Math.Max(1, Math.Min(cc.lengthSamples, cc.MaxLengthFromOffset(d.sampleRate)));
+                cc.generator = null;
+            }, StudioChange.Structure | StudioChange.Content);
+            _ctx.Toast?.Invoke("Clip restored to its original audio", false);
         }
 
         public void ImportFromProjectSelection()

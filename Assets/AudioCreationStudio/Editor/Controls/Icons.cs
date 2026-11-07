@@ -8,7 +8,7 @@ namespace AudioCreationStudio.EditorUI
         None, Play, Pause, Stop, Loop, Plus, Trash, Undo, Redo, Save, Open, New, Import, Export, Gear, Magnet,
         Scissors, Duplicate, Dice, Waveform, Mixer, Sine, Layers, Grid, Power, ChevronDown, ChevronRight, Up, Down,
         Curve, Speaker, Close, Search, More, Check, Warning, Folder, Logo, Skip, Copy,
-        Pointer, TrimTool, Blade, DynamicTrim
+        Pointer, TrimTool, Blade, DynamicTrim, Grip, FolderOpen, FolderPlus, Pencil, Sparkle
     }
 
     /// <summary>Resolution-independent vector icons drawn with Painter2D (crisp on high-DPI displays).</summary>
@@ -231,6 +231,26 @@ namespace AudioCreationStudio.EditorUI
                     break;
                 case Icon.Search:
                     Ring(0.44f, 0.44f, 0.22f, 0, 360); Seg(0.6f, 0.6f, 0.82f, 0.82f);
+                    break;
+                case Icon.Sparkle:
+                    Poly(true, P(0.42f, 0.14f), P(0.5f, 0.42f), P(0.78f, 0.5f), P(0.5f, 0.58f), P(0.42f, 0.86f), P(0.34f, 0.58f), P(0.06f, 0.5f), P(0.34f, 0.42f));
+                    Poly(true, P(0.78f, 0.1f), P(0.82f, 0.22f), P(0.94f, 0.26f), P(0.82f, 0.3f), P(0.78f, 0.42f), P(0.74f, 0.3f), P(0.62f, 0.26f), P(0.74f, 0.22f));
+                    break;
+                case Icon.Grip:
+                    Dot(0.38f, 0.28f, 0.06f); Dot(0.62f, 0.28f, 0.06f); Dot(0.38f, 0.5f, 0.06f);
+                    Dot(0.62f, 0.5f, 0.06f); Dot(0.38f, 0.72f, 0.06f); Dot(0.62f, 0.72f, 0.06f);
+                    break;
+                case Icon.FolderOpen:
+                    Poly(false, P(0.14f, 0.74f), P(0.14f, 0.3f), P(0.4f, 0.3f), P(0.48f, 0.38f), P(0.78f, 0.38f), P(0.78f, 0.48f));
+                    Poly(false, P(0.14f, 0.78f), P(0.28f, 0.48f), P(0.9f, 0.48f), P(0.76f, 0.78f), P(0.14f, 0.78f));
+                    break;
+                case Icon.FolderPlus:
+                    Poly(false, P(0.56f, 0.78f), P(0.12f, 0.78f), P(0.12f, 0.3f), P(0.38f, 0.3f), P(0.46f, 0.38f), P(0.84f, 0.38f), P(0.84f, 0.52f));
+                    Seg(0.76f, 0.58f, 0.76f, 0.9f); Seg(0.6f, 0.74f, 0.92f, 0.74f);
+                    break;
+                case Icon.Pencil:
+                    Poly(false, P(0.2f, 0.8f), P(0.24f, 0.64f), P(0.66f, 0.22f), P(0.78f, 0.34f), P(0.36f, 0.76f), P(0.2f, 0.8f));
+                    Seg(0.58f, 0.3f, 0.7f, 0.42f);
                     break;
                 case Icon.More: Dot(0.24f, 0.5f, 0.07f); Dot(0.5f, 0.5f, 0.07f); Dot(0.76f, 0.5f, 0.07f); break;
                 case Icon.Warning:

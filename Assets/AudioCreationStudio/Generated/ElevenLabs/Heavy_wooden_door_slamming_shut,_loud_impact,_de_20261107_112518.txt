@@ -1,0 +1,10 @@
+ElevenLabs sound effect
+prompt: Heavy wooden door slamming shut, loud impact, deep resonance, close-up, dry acoustics
+model: eleven_text_to_sound_v2
+duration: 2.0 s
+prompt_influence: 0.60
+loop: False
+format: wav_48000
+generated: 2026-11-07 11:25:18
+idea: tiếng cửa đập mạnh voà gỗ
+prompt_writer: Gemini gemini-flash-lite-latest

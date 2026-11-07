@@ -62,7 +62,7 @@ namespace AudioCreationStudio.EditorUI
             head.Add(new IconElement(Icon.Search, 14));
             head.Add(_search);
             main.Add(head);
-            var scroll = new ScrollView();
+            var scroll = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             scroll.AddToClassList("acs-lib__scroll");
             _grid = new VisualElement();
             _grid.AddToClassList("acs-lib__grid");

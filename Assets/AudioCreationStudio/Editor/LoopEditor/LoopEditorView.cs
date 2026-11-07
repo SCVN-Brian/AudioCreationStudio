@@ -85,7 +85,7 @@ namespace AudioCreationStudio.EditorUI
             left.Add(actions);
             Add(left);
 
-            var right = new ScrollView();
+            var right = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             right.AddToClassList("acs-gen__params");
             _settings = new VisualElement();
             right.Add(_settings);

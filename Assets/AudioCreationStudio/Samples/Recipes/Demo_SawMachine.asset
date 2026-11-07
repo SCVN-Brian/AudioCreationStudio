@@ -31,7 +31,7 @@ MonoBehaviour:
       - 6
       - 0
       - 1
-      expanded: 1
+      expanded: 0
     - uid: c29ed769d72b
       typeId: limiter
       enabled: 1
@@ -40,7 +40,7 @@ MonoBehaviour:
       - -1
       - 0
       - 60
-      expanded: 1
+      expanded: 0
     tracks:
     - uid: 4d5a6f10111d
       name: Motor Loop
@@ -63,6 +63,9 @@ MonoBehaviour:
           subOscMix: 0
           durationSeconds: 0.5
           volumeDb: -6
+          sampleGuid: 
+          sampleName: 
+          sampleStart: 0
           oneShot: 1
           attack: 0.005
           decay: 0.12
@@ -139,6 +142,9 @@ MonoBehaviour:
           subOscMix: 0
           durationSeconds: 0.5
           volumeDb: -6
+          sampleGuid: 
+          sampleName: 
+          sampleStart: 0
           oneShot: 1
           attack: 0.005
           decay: 0.12
@@ -168,7 +174,7 @@ MonoBehaviour:
         sourceFrames: 96000
         sourceChannels: 2
         startSample: 5760
-        sourceOffset: 14400
+        sourceOffset: 12248
         lengthSamples: 148800
         gainDb: -8
         pan: 0.25
@@ -246,6 +252,9 @@ MonoBehaviour:
           subOscMix: 0
           durationSeconds: 0.5
           volumeDb: -6
+          sampleGuid: 
+          sampleName: 
+          sampleStart: 0
           oneShot: 1
           attack: 0.005
           decay: 0.12
@@ -300,7 +309,7 @@ MonoBehaviour:
         - 9000
         - 0.35
         - -2
-        expanded: 1
+        expanded: 0
       - uid: 93b3713b31da
         typeId: compressor
         enabled: 1
@@ -313,7 +322,7 @@ MonoBehaviour:
         - 6
         - 3
         - 1
-        expanded: 1
+        expanded: 0
       automation: []
       showAutomation: 0
       automationTarget: gain
@@ -338,6 +347,9 @@ MonoBehaviour:
           subOscMix: 0
           durationSeconds: 0.5
           volumeDb: -6
+          sampleGuid: 
+          sampleName: 
+          sampleStart: 0
           oneShot: 1
           attack: 0.005
           decay: 0.12
@@ -366,7 +378,7 @@ MonoBehaviour:
         sourceSampleRate: 48000
         sourceFrames: 28800
         sourceChannels: 1
-        startSample: 99840
+        startSample: 124800
         sourceOffset: 0
         lengthSamples: 28800
         gainDb: -1
@@ -411,7 +423,9 @@ MonoBehaviour:
       snapToZeroCrossing: 1
       zeroSearchMs: 5
     export:
+      fileType: 0
       format: 0
+      lossyBitrateKbps: 192
       sampleRate: 0
       channels: 0
       scope: 0

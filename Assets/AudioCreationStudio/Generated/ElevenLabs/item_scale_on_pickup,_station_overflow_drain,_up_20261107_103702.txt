@@ -1,0 +1,12 @@
+ElevenLabs sound effect
+prompt: item scale on pickup, station overflow drain, upgrade pay ramp, upgrade throw point
+Animation / FX: truck player animation, boat tier-up FX, sale gate upgrade animation
+Level / Prefabs: Black and Red2 barrel rails, SaleArea, SalesTruckQueue, graybox toon materials
+Config: camera shot config drawer, boat tier config
+Fix: Obi collider revive
+model: eleven_text_to_sound_v3
+duration: auto
+prompt_influence: 0.30
+loop: False
+format: wav_48000
+generated: 2026-11-07 10:37:02

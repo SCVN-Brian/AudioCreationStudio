@@ -1,0 +1,8 @@
+ElevenLabs sound effect
+prompt: Cute cartoon baby voice making three short, high-pitched underwater gurgling sounds: “glug, glug, glug” (“ộc, ộc, ộc”). Muffled, bubbly, playful, and exaggerated. Casual game SFX, 1–2 seconds. No music, crying, or background noise.
+model: eleven_text_to_sound_v3
+duration: auto
+prompt_influence: 0.30
+loop: False
+format: wav_48000
+generated: 2026-11-07 10:40:45

@@ -1,0 +1,10 @@
+ElevenLabs sound effect
+prompt: A man choking and gurgling underwater, struggling for breath, muffled bubbling sound, short, realistic
+model: eleven_text_to_sound_v2
+duration: 2.0 s
+prompt_influence: 0.60
+loop: False
+format: wav_48000
+generated: 2026-11-07 11:25:47
+idea: tiếng một người đàn ông bị đuối nước kêu lên gru gru gru
+prompt_writer: Gemini gemini-flash-lite-latest

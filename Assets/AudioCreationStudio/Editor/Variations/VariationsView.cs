@@ -43,7 +43,7 @@ namespace AudioCreationStudio.EditorUI
             _ctx = ctx;
             _runner = runner;
             AddToClassList("acs-var");
-            var left = new ScrollView();
+            var left = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             left.AddToClassList("acs-gen__params");
             left.AddToClassList("acs-var__settings");
             _settings = new VisualElement();
@@ -67,7 +67,7 @@ namespace AudioCreationStudio.EditorUI
             actions.Add(UIUtil.Spacer());
             actions.Add(new StudioButton(Icon.Export, "Batch Export", BatchExport, "Export every variation as a baked audio file in the format chosen in Export settings", "acs-btn--soft"));
             main.Add(actions);
-            _list = new ScrollView();
+            _list = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             _list.AddToClassList("acs-var__list");
             main.Add(_list);
             Add(main);

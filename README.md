@@ -7,7 +7,7 @@ A mini DAW inside the Unity Editor for game sound effects: a multitrack timeline
 Add this line to `Packages/manifest.json`:
 
 ```json
-"com.supercent.audiocreationstudio": "https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.2.2"
+"com.supercent.audiocreationstudio": "https://github.com/SCVN-Brian/AudioCreationStudio.git?path=Assets/AudioCreationStudio#v1.3.0"
 ```
 
 Full installation guide (Vietnamese): [Assets/AudioCreationStudio/README.md](Assets/AudioCreationStudio/README.md) · Changes: [CHANGELOG.md](Assets/AudioCreationStudio/CHANGELOG.md)

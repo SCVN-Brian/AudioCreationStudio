@@ -1,0 +1,10 @@
+ElevenLabs sound effect
+prompt: A man drowning, gasping and gurgling in distress, choking on water, short desperate vocalization, close-up, realistic, dry, 2 seconds
+model: eleven_text_to_sound_v2
+duration: 2.0 s
+prompt_influence: 0.70
+loop: False
+format: wav_48000
+generated: 2026-11-07 11:26:29
+idea: tiếng một người đàn ông bị đuối nước kêu lên gru gru grugru, như kiểu kêu thất thanh lời cuối cùng
+prompt_writer: Gemini gemini-flash-lite-latest

@@ -39,7 +39,7 @@ namespace AudioCreationStudio.EditorUI
             head.Add(UIUtil.Spacer());
             head.Add(new StudioButton(Icon.Mixer, null, () => _ctx.Session.SelectMaster(), "Inspect recipe & master bus", "acs-btn--sm"));
             Add(head);
-            _scroll = new ScrollView(ScrollViewMode.Vertical);
+            _scroll = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             _scroll.AddToClassList("acs-inspector__scroll");
             Add(_scroll);
         }
@@ -107,8 +107,11 @@ namespace AudioCreationStudio.EditorUI
             if (c.sourceKind == ClipSourceKind.Generator)
             {
                 src.Body.Add(Fields.Info("Type", $"Procedural · {c.generator?.presetName}"));
-                var edit = new StudioButton(Icon.Sine, "Edit in Generator", () => _ctx.EditGenerator?.Invoke(c.generator, uid), "Open the procedural generator for this clip", "acs-btn--soft");
+                var edit = new StudioButton(Icon.Sine, "Edit in Custom Generate", () => _ctx.EditClipInGenerator?.Invoke(uid), "Open this clip in Custom Generate; edits update the clip", "acs-btn--soft");
                 src.Body.Add(edit);
+                if (StudioCommands.CanRevertToAudio(c))
+                    src.Body.Add(new StudioButton(Icon.Undo, "Revert to Original Audio", () => _ctx.Commands.RevertToOriginalAudio(uid),
+                        $"Play '{c.sourceClip.name}' again as plain audio (drops the Custom Generate edits)", "acs-btn--sm"));
             }
             else
             {
@@ -130,6 +133,9 @@ namespace AudioCreationStudio.EditorUI
                     }, StudioChange.Structure);
                 });
                 src.Body.Add(of);
+                if (c.sourceClip != null)
+                    src.Body.Add(new StudioButton(Icon.Sine, "Edit in Custom Generate", () => _ctx.EditClipInGenerator?.Invoke(uid),
+                        "Edit this clip's sound with Custom Generate (pitch, envelope, filter, noise, drive…). The clip is updated in place; Cmd/Ctrl+Z or Revert to Original Audio restores it.", "acs-btn--soft"));
                 if (c.sourceClip == null) src.Body.Add(Fields.Warning("Source AudioClip is missing. Assign a clip; the timeline placement is kept.", true));
                 else if (!_ctx.Library.TryGetClip(c.sourceClip, out _, out _, out var err)) src.Body.Add(Fields.Warning(err, true));
             }

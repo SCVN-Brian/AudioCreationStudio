@@ -1,0 +1,12 @@
+ElevenLabs sound effect
+prompt: Human character, underwater drowning gurgling and bubbling, wet, bubbly, muffled, airy, medium pitch, three distinct bubbling gurgles with short pauses, immediate attack, short natural decay, cartoon casual game style, no music, no background ambience, no dialogue, no distortion
+model: eleven_text_to_sound_v2
+duration: 2.5 s
+prompt_influence: 0.70
+loop: False
+format: wav_48000
+generated: 2026-11-07 11:47:33
+idea: tiếng người bị đuối nước kêu ùng ục 3 lần, kiểu game casual hoạt hình
+analyzer: Gemini gemini-flash-lite-latest
+edited_parameters: 0
+spec: {"soundSource":"Human character","action":"Underwater drowning gurgling and bubbling","texture":["Wet","Bubbly","Muffled","Airy"],"pitch":"Medium","rhythm":{"pattern":"Three distinct bubbling gurgles","repetitions":3,"spacing":"Short pauses"},"intensity":"Moderate","style":"Cartoon casual game","duration":{"seconds":2.5,"attack":"Immediate","sustain":"Three bubbling bursts","release":"Short natural decay"},"constraints":["No music","No background ambience","No dialogue","No distortion"],"loop":false,"promptInfluence":0.699999988079071,"explanation":"Tiếng người đuối nước kêu ùng ục 3 lần theo phong cách game casual hoạt hình, kéo dài 2.5 giây.","warning":""}

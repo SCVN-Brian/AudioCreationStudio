@@ -15,8 +15,10 @@ namespace AudioCreationStudio.EditorUI
     /// </summary>
     public sealed class AudioStudioWindow : EditorWindow
     {
-        private static readonly string[] Tabs = { "Arrange", "Mixer", "Generator", "Loop", "Variations", "Library" };
-        private static readonly Icon[] TabIcons = { Icon.Waveform, Icon.Mixer, Icon.Sine, Icon.Loop, Icon.Layers, Icon.Grid };
+        public const string AiTab = "AI Generate";
+        public const string GeneratorTab = "Custom Generate";
+        private static readonly string[] Tabs = { "Arrange", "Mixer", AiTab, GeneratorTab, "Loop", "Variations", "Library" };
+        private static readonly Icon[] TabIcons = { Icon.Waveform, Icon.Mixer, Icon.Sparkle, Icon.Sine, Icon.Loop, Icon.Layers, Icon.Grid };
 
         [SerializeField] private StudioState _state = new StudioState();
 
@@ -34,6 +36,7 @@ namespace AudioCreationStudio.EditorUI
         private ArrangeView _arrange;
         private MixerView _mixer;
         private GeneratorView _generator;
+        private AIGenerateView _ai;
         private LoopEditorView _loopEditor;
         private VariationsView _variations;
         private LibraryView _library;
@@ -128,7 +131,8 @@ namespace AudioCreationStudio.EditorUI
             _ctx = new StudioContext
             {
                 Session = _session, Library = SourceLibrary.Shared, Waveforms = WaveformCache.Shared, Render = _render, Transport = _transport,
-                ShowTab = ShowTab, OpenExport = OpenExport, Toast = Toast, EditGenerator = EditGenerator, OpenLoopEditorForClip = OpenLoopForClip
+                ShowTab = ShowTab, OpenExport = OpenExport, Toast = Toast, EditGenerator = EditGenerator, OpenLoopEditorForClip = OpenLoopForClip,
+                EditSampleInGenerator = EditSampleInGenerator, EditClipInGenerator = EditClipInGenerator
             };
             _ctx.Commands = new StudioCommands(_ctx);
 
@@ -163,12 +167,15 @@ namespace AudioCreationStudio.EditorUI
                 else if (!cancelled && results.Count > 0) Toast(_exportRunner.Status, false);
             };
 
-            root.RegisterCallback<GeometryChangedEvent>(e =>
+            void ApplyWidthClasses(float w)
             {
-                float w = e.newRect.width;
-                root.EnableInClassList("acs-compact", w < 1380);
-                root.EnableInClassList("acs-narrow", w < 1000);
-            });
+                if (float.IsNaN(w) || w <= 0) return;
+                root.EnableInClassList("acs-compact", w < 1560); // 7 labelled tabs need ~1560 px
+                root.EnableInClassList("acs-narrow", w < 1150); // toolbar with 7 tabs needs ~1150 px for the edit group + total time
+            }
+            root.RegisterCallback<GeometryChangedEvent>(e => ApplyWidthClasses(e.newRect.width));
+            // GeometryChanged is not always sent after a domain reload, so re-check the width now and then.
+            root.schedule.Execute(() => ApplyWidthClasses(root.layout.width)).Every(500);
             root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             root.RegisterCallback<ValidateCommandEvent>(OnValidateCommand);
             root.RegisterCallback<ExecuteCommandEvent>(OnExecuteCommand);
@@ -243,7 +250,7 @@ namespace AudioCreationStudio.EditorUI
             var transport = new VisualElement();
             transport.AddToClassList("acs-transport");
             transport.Add(new StudioButton(Icon.Stop, null, () => _transport.Stop(), "Stop (Esc)", "acs-btn--transport"));
-            _playBtn = new StudioButton(Icon.Play, null, () => { if (_state.activeTab == "Generator") _generator?.TogglePreview(); else _transport.TogglePlay(); }, "Play / Pause (Space)", "acs-btn--play");
+            _playBtn = new StudioButton(Icon.Play, null, () => { if (_state.activeTab == GeneratorTab) _generator?.TogglePreview(); else _transport.TogglePlay(); }, "Play / Pause (Space)", "acs-btn--play");
             transport.Add(_playBtn);
             _loopBtn = new StudioButton(Icon.Loop, null, () => { _session.LoopPlayback = !_session.LoopPlayback; _loopBtn.Toggled = _session.LoopPlayback; if (_transport.IsPlaying && _transport.Target == PreviewTarget.Mix) _transport.Seek(_session.Playhead); }, "Loop playback (L) — loops the loop region if one is enabled", "acs-btn--transport");
             _loopBtn.Toggled = _state.loopPlayback;
@@ -386,6 +393,7 @@ namespace AudioCreationStudio.EditorUI
 
         private void ShowTab(string tab)
         {
+            if (tab == "Generator") tab = GeneratorTab; // tab name saved by older versions
             if (Array.IndexOf(Tabs, tab) < 0) tab = "Arrange";
             _state.activeTab = tab;
             if (!_views.ContainsKey(tab))
@@ -394,7 +402,8 @@ namespace AudioCreationStudio.EditorUI
                 switch (tab)
                 {
                     case "Mixer": v = _mixer = new MixerView(_ctx); _mixer.Rebuild(); break;
-                    case "Generator": v = _generator = new GeneratorView(_ctx, _state); break;
+                    case AiTab: v = _ai = new AIGenerateView(_ctx); break;
+                    case GeneratorTab: v = _generator = new GeneratorView(_ctx, _state); break;
                     case "Loop": v = _loopEditor = new LoopEditorView(_ctx); break;
                     case "Variations": v = _variations = new VariationsView(_ctx, _exportRunner); break;
                     case "Library": v = _library = new LibraryView(_ctx); break;
@@ -407,7 +416,7 @@ namespace AudioCreationStudio.EditorUI
             foreach (var kv in _views) kv.Value.style.display = kv.Key == tab ? DisplayStyle.Flex : DisplayStyle.None;
             foreach (var kv in _tabButtons) kv.Value.EnableInClassList("acs-tab--on", kv.Key == tab);
             bool inspector = tab == "Arrange" || tab == "Mixer";
-            if (inspector) _split.UnCollapse(); else _split.CollapseChild(1);
+            ApplyInspectorVisibility(inspector);
             switch (tab)
             {
                 case "Arrange": _arrange.RefreshAll(StudioChange.All); break;
@@ -420,8 +429,42 @@ namespace AudioCreationStudio.EditorUI
 
         private void EditGenerator(GeneratorSettings settings, string clipUid)
         {
-            ShowTab("Generator");
+            ShowTab(GeneratorTab);
             _generator.Load(settings ?? GeneratorPresets.CoinPickup(), clipUid);
+        }
+
+        /// <summary>TwoPaneSplitView ignores CollapseChild before its first layout, so retry once it has geometry.</summary>
+        private void ApplyInspectorVisibility(bool show)
+        {
+            if (show) _split.UnCollapse(); else _split.CollapseChild(1);
+            if (float.IsNaN(_split.layout.width) || _split.layout.width <= 0)
+            {
+                EventCallback<GeometryChangedEvent> once = null;
+                once = _ =>
+                {
+                    _split.UnregisterCallback(once);
+                    bool wanted = _state.activeTab == "Arrange" || _state.activeTab == "Mixer";
+                    if (wanted) _split.UnCollapse(); else _split.CollapseChild(1);
+                };
+                _split.RegisterCallback(once);
+            }
+        }
+
+        private void EditClipInGenerator(string clipUid)
+        {
+            // The conversion is the only undo step: loading the clip into the generator records none,
+            // so a single Cmd/Ctrl+Z restores the original clip.
+            bool converting = _ctx.Data.FindClip(clipUid)?.sourceKind == ClipSourceKind.AudioClip;
+            var g = _ctx.Commands.ConvertToSampleGenerator(clipUid);
+            if (g == null) return;
+            ShowTab(GeneratorTab);
+            _generator.Load(g, clipUid, recordUndo: !converting);
+        }
+
+        private void EditSampleInGenerator(AudioClip clip)
+        {
+            ShowTab(GeneratorTab);
+            _generator.SetSample(clip, false);
         }
 
         private void OpenLoopForClip(string clipUid)
@@ -574,7 +617,7 @@ namespace AudioCreationStudio.EditorUI
             switch (e.keyCode)
             {
                 case KeyCode.Space:
-                    if (_state.activeTab == "Generator") _generator?.TogglePreview(); else _transport.TogglePlay();
+                    if (_state.activeTab == GeneratorTab) _generator?.TogglePreview(); else _transport.TogglePlay();
                     break;
                 case KeyCode.Escape:
                     if (_exportPanel.IsOpen && !_exportRunner.IsRunning) _exportPanel.Hide(); else _transport.Stop();

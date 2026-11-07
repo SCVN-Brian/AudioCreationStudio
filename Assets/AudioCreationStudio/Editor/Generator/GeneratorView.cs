@@ -69,7 +69,7 @@ namespace AudioCreationStudio.EditorUI
             _search.AddToClassList("acs-search");
             _search.RegisterValueChangedCallback(_ => BuildPresetList());
             left.Add(_search);
-            var ps = new ScrollView();
+            var ps = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             ps.AddToClassList("acs-gen__presets");
             _presetList = new VisualElement();
             ps.Add(_presetList);
@@ -77,7 +77,7 @@ namespace AudioCreationStudio.EditorUI
             Add(left);
 
             // Center: visualizers + waveform + actions
-            var center = new ScrollView(ScrollViewMode.Vertical);
+            var center = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             center.AddToClassList("acs-gen__center");
             var head = new VisualElement();
             head.AddToClassList("acs-gen__head");
@@ -85,11 +85,15 @@ namespace AudioCreationStudio.EditorUI
             head.Add(_nameLabel);
             _bound = UIUtil.Label("", "acs-pill");
             head.Add(_bound);
+            StudioButton importBtn = null;
+            importBtn = new StudioButton(Icon.Import, "Import Sound", () => ShowImportMenu(importBtn),
+                "Edit an existing sound: browse for a file, use the clip selected in the Project window, or pick a recent AI take. You can also drag a file or AudioClip onto this tab.", "acs-btn--sm", "acs-btn--soft");
+            importBtn.AddToClassList("acs-gen__import");
+            head.Add(importBtn);
             head.Add(UIUtil.Spacer());
             _info = UIUtil.Label("", "acs-label-dim");
             head.Add(_info);
             center.Add(head);
-            center.Add(new ElevenLabsPanel(ctx, this));
 
             var grid = new VisualElement();
             grid.AddToClassList("acs-gen__grid");
@@ -133,10 +137,11 @@ namespace AudioCreationStudio.EditorUI
             Add(center);
 
             // Right: parameters
-            _params = new ScrollView();
+            _params = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             _params.AddToClassList("acs-gen__params");
             Add(_params);
 
+            BuildDropOverlay();
             BuildPresetList();
             RebuildParams();
             Regenerate(true);
@@ -164,17 +169,29 @@ namespace AudioCreationStudio.EditorUI
             Regenerate(true);
         }
 
-        public void Load(GeneratorSettings s, string clipUid)
+        /// <param name="recordUndo">False when the caller's own undo step already covers the change (e.g. opening a
+        /// timeline clip that was just converted), so one Ctrl+Z undoes the whole action.</param>
+        public void Load(GeneratorSettings s, string clipUid, bool recordUndo = true)
         {
-            Undo.RecordObject(_doc, "Load Generator Settings");
+            if (recordUndo) Undo.RecordObject(_doc, "Load Generator Settings");
             _doc.settings = s.Clone();
-            CommitUndo("Load Generator Settings");
+            if (recordUndo) CommitUndo("Load Generator Settings");
+            else _lastHash = _s.ComputeHash();
             _state.generatorClipUid = clipUid;
             RebuildParams();
             Regenerate(true);
         }
 
-        private ClipData BoundClip => string.IsNullOrEmpty(_state.generatorClipUid) ? null : _ctx.Data.FindClip(_state.generatorClipUid);
+        /// <summary>The timeline clip being edited; null when standalone or when the clip is no longer a generator clip (e.g. after undo).</summary>
+        private ClipData BoundClip
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_state.generatorClipUid)) return null;
+                var c = _ctx.Data.FindClip(_state.generatorClipUid);
+                return c != null && c.sourceKind == ClipSourceKind.Generator ? c : null;
+            }
+        }
 
         public void OnSessionChanged()
         {
@@ -265,13 +282,20 @@ namespace AudioCreationStudio.EditorUI
                     long frames = (long)Math.Round(DspMath.Clamp(copy.durationSeconds, 0.005f, ProceduralSynth.MaxDurationSeconds) * d.sampleRate);
                     bool wasFull = cc.lengthSamples >= cc.sourceFrames - 1;
                     cc.sourceFrames = Math.Max(1, frames);
-                    if (wasFull || cc.lengthSamples > frames) cc.lengthSamples = Math.Max(1, frames);
+                    // Looping clips repeat the source, so their timeline length is independent of the source length.
+                    if (!cc.loop && (wasFull || cc.lengthSamples > frames)) cc.lengthSamples = Math.Max(1, frames);
                     cc.name = copy.presetName;
                 };
                 if (continuous) _ctx.Session.Continuous(apply, StudioChange.Content, this);
                 else _ctx.Session.Modify(undo, apply, StudioChange.Content, this);
             }
-            if (!continuous) CommitUndo(undo);
+            // A bound edit is already one undo step (Session.Modify recorded the generator document and the recipe
+            // together); committing again would push an empty step that makes the first Ctrl+Z look like it did nothing.
+            if (!continuous)
+            {
+                if (c == null) CommitUndo(undo);
+                else _lastHash = _s.ComputeHash();
+            }
             Regenerate(false);
             UpdateVisuals();
             UpdateHeader();
@@ -528,7 +552,7 @@ namespace AudioCreationStudio.EditorUI
             body.Add(field);
             if (clip == null)
             {
-                body.Add(Fields.Warning(string.IsNullOrEmpty(s.sampleGuid) ? "Choose an AudioClip (or use 'Edit in Generator' on an ElevenLabs take)." : $"Sample '{s.sampleName}' is missing.", clip == null && !string.IsNullOrEmpty(s.sampleGuid)));
+                body.Add(Fields.Warning(string.IsNullOrEmpty(s.sampleGuid) ? "Choose an AudioClip, click Import Sound at the top, or drag a sound file onto this tab." : $"Sample '{s.sampleName}' is missing.", clip == null && !string.IsNullOrEmpty(s.sampleGuid)));
                 return;
             }
             float len = 0;
@@ -537,6 +561,129 @@ namespace AudioCreationStudio.EditorUI
             body.Add(P("Start Offset", 0f, Mathf.Max(0.01f, len), s.sampleStart, false, ms, (g, v) => g.sampleStart = v, "Where playback starts inside the sample", 0f));
             body.Add(new StudioButton(Icon.None, "Fit Duration to Sample", () => Edit("Fit Duration to Sample", g => g.durationSeconds = Mathf.Clamp(len - g.sampleStart, 0.02f, ProceduralSynth.MaxDurationSeconds)), "Set Duration to the remaining sample length", "acs-btn--soft", "acs-btn--sm"));
             body.Add(UIUtil.Label($"{len:0.00} s source · played mono. Pitch ±semitones transposes (and speeds up / slows down) the sample.", "acs-hint"));
+        }
+
+        // ------------------------------------------------------------------ Import a sound to edit
+
+        private const string LastImportDirPref = "ACS.Generator.LastImportDir";
+        private static readonly string[] AudioExtensions = { ".wav", ".aif", ".aiff", ".mp3", ".ogg", ".flac" };
+        private VisualElement _dropOverlay;
+
+        private void ShowImportMenu(VisualElement anchor)
+        {
+            var m = new GenericMenu();
+            m.AddItem(new GUIContent("Browse for a File…"), false, BrowseForSound);
+            AudioClip selected = Selection.activeObject as AudioClip;
+            if (selected != null) m.AddItem(new GUIContent($"Use Selected in Project ({selected.name})"), false, () => ImportClip(selected));
+            else m.AddDisabledItem(new GUIContent("Use Selected in Project (select an AudioClip first)"));
+            var recent = RecentTakes(12);
+            if (recent.Count == 0) m.AddDisabledItem(new GUIContent("Recent AI Takes/(none yet)"));
+            foreach (var path in recent)
+            {
+                string p = path;
+                m.AddItem(new GUIContent("Recent AI Takes/" + System.IO.Path.GetFileNameWithoutExtension(p).Replace('/', '-')), false,
+                    () => ImportClip(AssetDatabase.LoadAssetAtPath<AudioClip>(p)));
+            }
+            m.AddSeparator("");
+            m.AddDisabledItem(new GUIContent("Tip: drag a sound file or AudioClip onto this tab"));
+            m.DropDown(anchor.worldBound);
+        }
+
+        private static List<string> RecentTakes(int max)
+        {
+            var list = TakeStore.Takes(ElevenLabsPanel.OutputFolder, true);
+            if (list.Count > max) list.RemoveRange(max, list.Count - max);
+            return list;
+        }
+
+        private void BrowseForSound()
+        {
+            string dir = EditorPrefs.GetString(LastImportDirPref, "");
+            if (string.IsNullOrEmpty(dir) || !System.IO.Directory.Exists(dir)) dir = Application.dataPath;
+            string path = EditorUtility.OpenFilePanelWithFilters("Import a sound to edit", dir, new[] { "Audio", "wav,aif,aiff,mp3,ogg,flac", "All files", "*" });
+            if (string.IsNullOrEmpty(path)) return;
+            EditorPrefs.SetString(LastImportDirPref, System.IO.Path.GetDirectoryName(path));
+            ImportFile(path);
+        }
+
+        /// <summary>Copies a file from outside the project into Assets/AudioCreationStudio/Imported (originals untouched) and loads it.</summary>
+        public void ImportFile(string fullPath)
+        {
+            if (!IsAudioFile(fullPath)) { _ctx.Toast?.Invoke($"Not a supported audio file: {System.IO.Path.GetFileName(fullPath)} (wav, aiff, mp3, ogg, flac)", true); return; }
+            AudioClip clip;
+            try { clip = StudioCommands.ImportExternalFile(fullPath); }
+            catch (Exception ex) { _ctx.Toast?.Invoke("Could not import: " + ex.Message, true); return; }
+            if (clip == null) { _ctx.Toast?.Invoke($"Unity could not read {System.IO.Path.GetFileName(fullPath)} as audio", true); return; }
+            ImportClip(clip);
+        }
+
+        /// <summary>Loads a clip as the generator's Sample source with neutral settings, so it plays unchanged until edited.</summary>
+        public void ImportClip(AudioClip clip)
+        {
+            if (clip == null) return;
+            SetSample(clip, false);
+            if (_s.waveform == OscillatorWaveform.Sample && _s.sampleName == clip.name)
+                _ctx.Toast?.Invoke($"Loaded '{clip.name}'. It plays unchanged: tweak Pitch, Envelope, Filter, Noise, Drive… or Randomize for variants, then Insert or Export.", false);
+        }
+
+        private static bool IsAudioFile(string path) =>
+            Array.IndexOf(AudioExtensions, System.IO.Path.GetExtension(path ?? "").ToLowerInvariant()) >= 0;
+
+        /// <summary>Drag a sound file (Finder / Explorer) or an AudioClip (Project window) onto the tab to edit it.</summary>
+        private void BuildDropOverlay()
+        {
+            _dropOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
+            _dropOverlay.AddToClassList("acs-gen__drop");
+            var box = new VisualElement { pickingMode = PickingMode.Ignore };
+            box.AddToClassList("acs-gen__dropbox");
+            box.Add(new IconElement(Icon.Import, 28) { Color = StudioTheme.Accent });
+            var l = UIUtil.Label("Drop to edit this sound", "acs-gen__droptitle");
+            l.pickingMode = PickingMode.Ignore;
+            box.Add(l);
+            var h = UIUtil.Label("Loaded as the Sample source; it plays unchanged until you tweak it", "acs-hint");
+            h.pickingMode = PickingMode.Ignore;
+            box.Add(h);
+            _dropOverlay.Add(box);
+            _dropOverlay.style.display = DisplayStyle.None;
+            Add(_dropOverlay);
+
+            RegisterCallback<DragUpdatedEvent>(e =>
+            {
+                bool ok = DraggedSound(out _, out _);
+                DragAndDrop.visualMode = ok ? DragAndDropVisualMode.Copy : DragAndDropVisualMode.Rejected;
+                _dropOverlay.style.display = ok ? DisplayStyle.Flex : DisplayStyle.None;
+            });
+            RegisterCallback<DragPerformEvent>(e =>
+            {
+                _dropOverlay.style.display = DisplayStyle.None;
+                if (!DraggedSound(out var clip, out var file)) return;
+                DragAndDrop.AcceptDrag();
+                e.StopPropagation();
+                // Defer: importing assets inside the drag callback upsets the drag state.
+                schedule.Execute(() => { if (clip != null) ImportClip(clip); else ImportFile(file); });
+            });
+            RegisterCallback<DragLeaveEvent>(_ => _dropOverlay.style.display = DisplayStyle.None);
+            RegisterCallback<DragExitedEvent>(_ => _dropOverlay.style.display = DisplayStyle.None);
+        }
+
+        /// <summary>The first AudioClip, or the first audio file path from outside Unity, in the current drag.</summary>
+        private static bool DraggedSound(out AudioClip clip, out string file)
+        {
+            clip = null;
+            file = null;
+            foreach (var o in DragAndDrop.objectReferences)
+                if (o is AudioClip ac) { clip = ac; return true; }
+            foreach (var p in DragAndDrop.paths)
+                if (IsAudioFile(p))
+                {
+                    if (p.StartsWith("Assets/") || p.StartsWith("Packages/"))
+                    {
+                        clip = AssetDatabase.LoadAssetAtPath<AudioClip>(p);
+                        if (clip != null) return true;
+                    }
+                    else if (System.IO.File.Exists(p)) { file = p; return true; }
+                }
+            return false;
         }
 
         /// <summary>Switches the generator to play an AudioClip (undoable). Neutral settings when <paramref name="keepProcessing"/> is false.</summary>

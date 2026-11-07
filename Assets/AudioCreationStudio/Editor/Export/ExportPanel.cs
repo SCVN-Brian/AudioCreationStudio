@@ -42,7 +42,7 @@ namespace AudioCreationStudio.EditorUI
             head.Add(new StudioButton(Icon.Close, null, () => { if (!_runner.IsRunning) Hide(); }, "Close", "acs-btn--sm"));
             sheet.Add(head);
 
-            _body = new ScrollView();
+            _body = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden };
             _body.AddToClassList("acs-sheet__body");
             sheet.Add(_body);
 

@@ -21,7 +21,8 @@ Tool có 6 workspace, mỗi tab phụ trách một bước trong quy trình làm
 | --- | --- |
 | Arrange | Timeline nhiều track: clip hiển thị waveform thật, trim, fade, automation lane |
 | Mixer | Channel strip với fader, pan, mute/solo, danh sách effect và meter realtime |
-| Generator | Synth procedural với 11 preset + card AI Sound Effects (ElevenLabs) |
+| AI Generate | Tạo âm thanh bằng ElevenLabs từ mô tả text + Take Library sắp xếp take theo thư mục (kéo-thả) |
+| Custom Generate | Synth procedural với 11 preset, nhận cả take AI làm nguồn Sample |
 | Loop | Làm loop liền mạch: crossfade, phân tích điểm nối, nghe thử ×1/×5/×10 |
 | Variations | Sinh biến thể có kiểm soát, so sánh A/B, batch export |
 | Library | Preset cho generator, effect, effect chain, recipe và export settings |
@@ -36,7 +37,9 @@ Tool có 6 workspace, mỗi tab phụ trách một bước trong quy trình làm
 
 ![Mixer](Screenshots/02_Mixer.png)
 
-**Generator** — preset bên trái, card AI Sound Effects (ElevenLabs) với danh sách take, tham số synth bên phải.
+**AI Generate** — form ElevenLabs bên trái, Take Library bên phải: cây thư mục + danh sách take, kéo take thả vào thư mục để sắp xếp.
+
+**Custom Generate** — preset bên trái, visualizer ở giữa, tham số synth bên phải.
 
 ![Generator](Screenshots/03_Generator.png)
 
@@ -56,7 +59,7 @@ Tool có 6 workspace, mỗi tab phụ trách một bước trong quy trình làm
 
 **Procedural Generator:** oscillator (Sine, Square, Triangle, Saw) hoặc noise, sub-osc, filter, drive, ADSR, pitch sweep/jump/vibrato. Cùng settings và seed luôn cho ra cùng một âm thanh. Preset: Coin Pickup, UI Click, Pop, Notification, Whoosh, Impact, Upgrade, Cartoon Jump, Machine Start, Machine Running, Machine Stop.
 
-**AI Sound Effects (ElevenLabs):** mô tả âm thanh bằng tiếng Anh, tạo 1–4 take mỗi lần bấm, rồi chỉnh tiếp bằng toàn bộ công cụ của studio. Take có thể nạp vào Generator làm nguồn Sample để đổi pitch, envelope, filter và randomize ra biến thể.
+**AI Sound Effects (ElevenLabs):** mô tả âm thanh bằng tiếng Việt hoặc tiếng Anh, AI (mặc định Gemini với key miễn phí từ Google AI Studio) phân tích thành 9 tham số (nguồn âm, hành động, chất âm, cao độ, nhịp, cường độ, phong cách, thời lượng/cấu trúc, ràng buộc). Bạn xem và sửa từng tham số, prompt tiếng Anh cho ElevenLabs được dựng tự động từ đó (vẫn sửa tay được), tạo 1–4 take mỗi lần bấm, rồi chỉnh tiếp bằng toàn bộ công cụ của studio. Take có thể mở trong tab Custom Generate làm nguồn Sample để đổi pitch, envelope, filter và randomize ra biến thể.
 
 **Export WAV:** PCM 16-bit, PCM 24-bit hoặc Float 32-bit. Phạm vi: Full Mix, Selected Track, Selected Clip hoặc Loop Region. Tùy chọn sample rate, mono/stereo, giữ tail, normalize, cắt khoảng lặng. File được kiểm tra header trước khi ghi đè, nên hủy giữa chừng không làm hỏng file cũ.
 
@@ -89,7 +92,7 @@ Tool nằm sẵn trong `Assets/AudioCreationStudio`, mở project Unity 2022.3 l
 **Cấu hình ElevenLabs (chỉ cần nếu dùng AI Sound Effects):**
 
 1. Lấy API key tại elevenlabs.io ▸ Developers ▸ API Keys.
-2. Dán key vào ô **ElevenLabs key** trên card AI ở đầu tab Generator.
+2. Dán key vào Preferences ▸ Audio Creation Studio (nút ⚙ trên card ở tab AI Generate mở trang này).
 3. Key chỉ lưu trong EditorPrefs của máy đang dùng, không bao giờ vào project hay git. Nếu chưa lưu key, tool đọc biến môi trường `ELEVENLABS_API_KEY`.
 
 Mỗi take tốn credit của gói ElevenLabs, và quyền sử dụng audio tạo ra tuân theo điều khoản gói đó.

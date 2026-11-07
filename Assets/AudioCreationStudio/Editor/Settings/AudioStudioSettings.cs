@@ -17,6 +17,17 @@ namespace AudioCreationStudio.EditorUI
         public const string ElevenLabsKeyEnv = "ELEVENLABS_API_KEY";
         private const string ElevenLabsKeyPref = "AudioCreationStudio.ElevenLabsApiKey";
         private const string FfmpegPref = "AudioCreationStudio.FfmpegPath";
+        public const string OpenAIKeyEnv = "OPENAI_API_KEY";
+        private const string OpenAIKeyPref = "AudioCreationStudio.OpenAIApiKey";
+        private const string OpenAIModelPref = "AudioCreationStudio.OpenAIModel";
+        /// <summary>Any Chat Completions model with Structured Outputs (json_schema) works; changeable in Preferences.</summary>
+        public const string DefaultOpenAIModel = "gpt-4.1-mini";
+        public const string GeminiKeyEnv = "GEMINI_API_KEY";
+        private const string GeminiKeyPref = "AudioCreationStudio.GeminiApiKey";
+        private const string GeminiModelPref = "AudioCreationStudio.GeminiModel";
+        private const string PromptWriterPref = "AudioCreationStudio.PromptWriter";
+        /// <summary>Google's alias for the newest Flash-Lite model (fast, free tier in Google AI Studio); changeable in Preferences.</summary>
+        public const string DefaultGeminiModel = "gemini-flash-lite-latest";
         private const string LogPrefix = "[Audio Creation Studio] ";
 
         /// <summary>Raised after any setting changes, so open windows can refresh.</summary>
@@ -48,6 +59,21 @@ namespace AudioCreationStudio.EditorUI
             Changed?.Invoke();
         }
 
+        /// <summary>Trims whitespace and surrounding quotes from a pasted key.</summary>
+        public static string CleanKey(string k)
+        {
+            k = (k ?? "").Trim().Trim('"', '\'', '“', '”', '‘', '’').Trim();
+            return k;
+        }
+
+        /// <summary>Loose sanity check only (formats change): long enough and no whitespace. The real check is an API call.</summary>
+        public static bool LooksLikeKey(string k)
+        {
+            if (string.IsNullOrEmpty(k) || k.Length < 20) return false;
+            foreach (char c in k) if (char.IsWhiteSpace(c)) return false;
+            return true;
+        }
+
         public static string Mask(string k)
         {
             if (string.IsNullOrEmpty(k)) return "";
@@ -61,6 +87,121 @@ namespace AudioCreationStudio.EditorUI
             if (HasElevenLabsKey) return true;
             Debug.LogWarning(LogPrefix + "No ElevenLabs API key set, so AI sound generation is unavailable. " +
                              $"Add a key in Preferences ▸ Audio Creation Studio (Tools ▸ Audio Creation Studio ▸ Settings) or set {ElevenLabsKeyEnv}.");
+            return false;
+        }
+
+        // ------------------------------------------------------------------ Prompt writer (Gemini / OpenAI)
+
+        /// <summary>The LLM that writes ElevenLabs prompts. Gemini by default (free key from Google AI Studio).</summary>
+        public static PromptWriterProvider PromptWriter
+        {
+            get => (PromptWriterProvider)EditorPrefs.GetInt(PromptWriterPref, (int)PromptWriterProvider.Gemini);
+            set { EditorPrefs.SetInt(PromptWriterPref, (int)value); Changed?.Invoke(); }
+        }
+
+        public static string PromptWriterModel => PromptWriter == PromptWriterProvider.Gemini ? GeminiModel : OpenAIModel;
+        public static bool HasPromptWriterKey => PromptWriter == PromptWriterProvider.Gemini ? HasGeminiKey : HasOpenAIKey;
+        public static bool RequirePromptWriterKey() => PromptWriter == PromptWriterProvider.Gemini ? RequireGeminiKey() : RequireOpenAIKey();
+        public static string PromptWriterLabel => $"{PromptWriter} {PromptWriterModel}";
+
+        // Gemini (Google AI Studio)
+
+        public static string StoredGeminiKey => EditorPrefs.GetString(GeminiKeyPref, "");
+
+        /// <summary>The key in effect: the saved one, otherwise GEMINI_API_KEY (or GOOGLE_API_KEY).</summary>
+        public static string GeminiKey
+        {
+            get
+            {
+                var k = StoredGeminiKey;
+                if (!string.IsNullOrEmpty(k)) return k;
+                k = Environment.GetEnvironmentVariable(GeminiKeyEnv);
+                return !string.IsNullOrEmpty(k) ? k : Environment.GetEnvironmentVariable("GOOGLE_API_KEY") ?? "";
+            }
+        }
+
+        public static bool HasGeminiKey => !string.IsNullOrEmpty(GeminiKey);
+        public static bool GeminiKeyFromEnvironment => string.IsNullOrEmpty(StoredGeminiKey) && HasGeminiKey;
+
+        public static void SetGeminiKey(string key)
+        {
+            key = (key ?? "").Trim();
+            if (key.Length == 0) EditorPrefs.DeleteKey(GeminiKeyPref);
+            else EditorPrefs.SetString(GeminiKeyPref, key);
+            Changed?.Invoke();
+        }
+
+        public static string GeminiModel
+        {
+            get
+            {
+                var m = EditorPrefs.GetString(GeminiModelPref, "").Trim();
+                return m.Length > 0 ? m : DefaultGeminiModel;
+            }
+            set
+            {
+                value = (value ?? "").Trim();
+                if (value.Length == 0 || value == DefaultGeminiModel) EditorPrefs.DeleteKey(GeminiModelPref);
+                else EditorPrefs.SetString(GeminiModelPref, value);
+                Changed?.Invoke();
+            }
+        }
+
+        public static bool RequireGeminiKey()
+        {
+            if (HasGeminiKey) return true;
+            Debug.LogWarning(LogPrefix + "No Gemini API key set, so the prompt writer is unavailable. Get a free key at https://aistudio.google.com/apikey (sign in with Google) " +
+                             $"and save it in Preferences ▸ Audio Creation Studio, or set {GeminiKeyEnv}.");
+            return false;
+        }
+
+        // OpenAI
+
+        public static string StoredOpenAIKey => EditorPrefs.GetString(OpenAIKeyPref, "");
+
+        /// <summary>The key in effect: the saved one, otherwise the OPENAI_API_KEY environment variable.</summary>
+        public static string OpenAIKey
+        {
+            get
+            {
+                var k = StoredOpenAIKey;
+                return !string.IsNullOrEmpty(k) ? k : Environment.GetEnvironmentVariable(OpenAIKeyEnv) ?? "";
+            }
+        }
+
+        public static bool HasOpenAIKey => !string.IsNullOrEmpty(OpenAIKey);
+        public static bool OpenAIKeyFromEnvironment => string.IsNullOrEmpty(StoredOpenAIKey) && HasOpenAIKey;
+
+        public static void SetOpenAIKey(string key)
+        {
+            key = (key ?? "").Trim();
+            if (key.Length == 0) EditorPrefs.DeleteKey(OpenAIKeyPref);
+            else EditorPrefs.SetString(OpenAIKeyPref, key);
+            Changed?.Invoke();
+        }
+
+        public static string OpenAIModel
+        {
+            get
+            {
+                var m = EditorPrefs.GetString(OpenAIModelPref, "").Trim();
+                return m.Length > 0 ? m : DefaultOpenAIModel;
+            }
+            set
+            {
+                value = (value ?? "").Trim();
+                if (value.Length == 0 || value == DefaultOpenAIModel) EditorPrefs.DeleteKey(OpenAIModelPref);
+                else EditorPrefs.SetString(OpenAIModelPref, value);
+                Changed?.Invoke();
+            }
+        }
+
+        /// <summary>Logs a warning when no OpenAI key is available. Returns true when a key is set.</summary>
+        public static bool RequireOpenAIKey()
+        {
+            if (HasOpenAIKey) return true;
+            Debug.LogWarning(LogPrefix + "No OpenAI API key set, so the prompt writer is unavailable. " +
+                             $"Add a key in Preferences ▸ Audio Creation Studio (Tools ▸ Audio Creation Studio ▸ Settings) or set {OpenAIKeyEnv}.");
             return false;
         }
 
@@ -102,11 +243,11 @@ namespace AudioCreationStudio.EditorUI
     /// <summary>Preferences ▸ Audio Creation Studio.</summary>
     internal sealed class AudioStudioSettingsProvider : SettingsProvider
     {
-        private string _keyDraft = "";
-        private bool _showKey;
+        private string _keyDraft = "", _openAIDraft = "", _geminiDraft = "";
+        private bool _showKey, _showOpenAI, _showGemini;
 
         private AudioStudioSettingsProvider() : base(AudioStudioSettings.PreferencesPath, SettingsScope.User,
-            new HashSet<string> { "ElevenLabs", "API", "Key", "ffmpeg", "MP3", "OGG", "Audio", "Export" }) { }
+            new HashSet<string> { "ElevenLabs", "OpenAI", "ChatGPT", "GPT", "Gemini", "Google", "API", "Key", "ffmpeg", "MP3", "OGG", "Audio", "Export" }) { }
 
         [SettingsProvider]
         public static SettingsProvider Create() => new AudioStudioSettingsProvider();
@@ -118,6 +259,8 @@ namespace AudioCreationStudio.EditorUI
             using (new EditorGUILayout.VerticalScope(GUILayout.MaxWidth(640)))
             {
                 ElevenLabsSection();
+                GUILayout.Space(16);
+                PromptWriterSection();
                 GUILayout.Space(16);
                 FfmpegSection();
                 GUILayout.Space(16);
@@ -165,6 +308,145 @@ namespace AudioCreationStudio.EditorUI
                 if (GUILayout.Button("Get a key…", EditorStyles.linkLabel)) Application.OpenURL("https://elevenlabs.io/app/settings/api-keys");
             }
             EditorGUILayout.HelpBox($"Each generation uses ElevenLabs credits from your plan. If no key is saved, the {AudioStudioSettings.ElevenLabsKeyEnv} environment variable is used.", MessageType.Info);
+        }
+
+        private void PromptWriterSection()
+        {
+            EditorGUILayout.LabelField("Prompt writer (describe in any language → ElevenLabs prompt)", EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
+            var provider = (PromptWriterProvider)EditorGUILayout.EnumPopup(new GUIContent("Provider", "Gemini: free key from Google AI Studio (sign in with Google). OpenAI: paid API key."), AudioStudioSettings.PromptWriter);
+            if (EditorGUI.EndChangeCheck()) AudioStudioSettings.PromptWriter = provider;
+            GUILayout.Space(4);
+            if (provider == PromptWriterProvider.Gemini) GeminiSection(); else OpenAISection();
+        }
+
+        private void GeminiSection()
+        {
+            string stored = AudioStudioSettings.StoredGeminiKey;
+            string status = !string.IsNullOrEmpty(stored) ? $"Saved key {AudioStudioSettings.Mask(stored)}"
+                : AudioStudioSettings.GeminiKeyFromEnvironment ? $"Using environment variable ({AudioStudioSettings.Mask(AudioStudioSettings.GeminiKey)})"
+                : "Not set";
+            EditorGUILayout.LabelField("Status", status);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                _geminiDraft = _showGemini ? EditorGUILayout.TextField("Gemini API Key", _geminiDraft) : EditorGUILayout.PasswordField("Gemini API Key", _geminiDraft);
+                _showGemini = GUILayout.Toggle(_showGemini, "Show", EditorStyles.miniButton, GUILayout.Width(48));
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(EditorGUIUtility.labelWidth + 2);
+                using (new EditorGUI.DisabledScope(string.IsNullOrWhiteSpace(_geminiDraft)))
+                {
+                    if (GUILayout.Button("Save", GUILayout.Width(80)))
+                    {
+                        var k = AudioStudioSettings.CleanKey(_geminiDraft);
+                        if (!AudioStudioSettings.LooksLikeKey(k))
+                        {
+                            _geminiCheck = "That does not look like an API key (too short or contains spaces). Copy it again from aistudio.google.com/apikey.";
+                            _geminiCheckType = MessageType.Error;
+                        }
+                        else
+                        {
+                            AudioStudioSettings.SetGeminiKey(k);
+                            _geminiDraft = "";
+                            GUI.FocusControl(null);
+                            TestGeminiKey();
+                        }
+                    }
+                }
+                using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(stored)))
+                {
+                    if (GUILayout.Button("Remove", GUILayout.Width(80))) { AudioStudioSettings.SetGeminiKey(""); _geminiCheck = null; }
+                }
+                using (new EditorGUI.DisabledScope(!AudioStudioSettings.HasGeminiKey || _geminiChecking))
+                {
+                    if (GUILayout.Button(new GUIContent(_geminiChecking ? "Testing…" : "Test", "Check the key with Google (free, no generation)"), GUILayout.Width(70))) TestGeminiKey();
+                }
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Get a free key…", EditorStyles.linkLabel)) Application.OpenURL("https://aistudio.google.com/apikey");
+            }
+            if (!string.IsNullOrEmpty(_geminiCheck)) EditorGUILayout.HelpBox(_geminiCheck, _geminiCheckType);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUI.BeginChangeCheck();
+                string m = EditorGUILayout.DelayedTextField(new GUIContent("Model", "Any Gemini model that supports JSON response schemas. The default alias always points to the newest Flash-Lite model (fast, ~2 s). If the model hangs or is busy, Flash-Lite fallbacks are tried automatically."), AudioStudioSettings.GeminiModel);
+                if (EditorGUI.EndChangeCheck()) AudioStudioSettings.GeminiModel = m;
+                using (new EditorGUI.DisabledScope(AudioStudioSettings.GeminiModel == AudioStudioSettings.DefaultGeminiModel))
+                {
+                    if (GUILayout.Button("Default", GUILayout.Width(64))) { AudioStudioSettings.GeminiModel = ""; GUI.FocusControl(null); }
+                }
+            }
+            EditorGUILayout.HelpBox("Get a free key: open aistudio.google.com, sign in with your Google account, click Get API key ▸ Create API key, and paste it here. " +
+                                    $"The free tier has per-minute and per-day limits. If no key is saved, the {AudioStudioSettings.GeminiKeyEnv} (or GOOGLE_API_KEY) environment variable is used.", MessageType.Info);
+        }
+
+        private string _geminiCheck;
+        private MessageType _geminiCheckType;
+        private bool _geminiChecking;
+
+        private void TestGeminiKey()
+        {
+            _geminiChecking = true;
+            _geminiCheck = "Checking the key with Google…";
+            _geminiCheckType = MessageType.None;
+            PromptWriter.CheckGeminiKey(AudioStudioSettings.GeminiKey, (ok, message) =>
+            {
+                _geminiChecking = false;
+                _geminiCheck = ok ? "✓ Key saved and working." : "Key saved, but Google rejected it: " + message;
+                _geminiCheckType = ok ? MessageType.Info : MessageType.Warning;
+                Repaint();
+            });
+        }
+
+        private void OpenAISection()
+        {
+            string stored = AudioStudioSettings.StoredOpenAIKey;
+            string status = !string.IsNullOrEmpty(stored) ? $"Saved key {AudioStudioSettings.Mask(stored)}"
+                : AudioStudioSettings.OpenAIKeyFromEnvironment ? $"Using {AudioStudioSettings.OpenAIKeyEnv} ({AudioStudioSettings.Mask(AudioStudioSettings.OpenAIKey)})"
+                : "Not set";
+            EditorGUILayout.LabelField("Status", status);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                _openAIDraft = _showOpenAI ? EditorGUILayout.TextField("API Key", _openAIDraft) : EditorGUILayout.PasswordField("API Key", _openAIDraft);
+                _showOpenAI = GUILayout.Toggle(_showOpenAI, "Show", EditorStyles.miniButton, GUILayout.Width(48));
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(EditorGUIUtility.labelWidth + 2);
+                using (new EditorGUI.DisabledScope(string.IsNullOrWhiteSpace(_openAIDraft)))
+                {
+                    if (GUILayout.Button("Save", GUILayout.Width(80)))
+                    {
+                        var k = AudioStudioSettings.CleanKey(_openAIDraft);
+                        if (!AudioStudioSettings.LooksLikeKey(k))
+                            Debug.LogWarning("[Audio Creation Studio] That does not look like an API key (too short or contains spaces); it was not saved.");
+                        else
+                        {
+                            AudioStudioSettings.SetOpenAIKey(k);
+                            _openAIDraft = "";
+                            GUI.FocusControl(null);
+                        }
+                    }
+                }
+                using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(stored)))
+                {
+                    if (GUILayout.Button("Remove", GUILayout.Width(80))) AudioStudioSettings.SetOpenAIKey("");
+                }
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Get a key…", EditorStyles.linkLabel)) Application.OpenURL("https://platform.openai.com/api-keys");
+            }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUI.BeginChangeCheck();
+                string m = EditorGUILayout.DelayedTextField(new GUIContent("Model", "Any Chat Completions model that supports Structured Outputs"), AudioStudioSettings.OpenAIModel);
+                if (EditorGUI.EndChangeCheck()) AudioStudioSettings.OpenAIModel = m;
+                using (new EditorGUI.DisabledScope(AudioStudioSettings.OpenAIModel == AudioStudioSettings.DefaultOpenAIModel))
+                {
+                    if (GUILayout.Button("Default", GUILayout.Width(64))) { AudioStudioSettings.OpenAIModel = ""; GUI.FocusControl(null); }
+                }
+            }
+            EditorGUILayout.HelpBox("Turns your description (any language) into a precise English ElevenLabs prompt with duration, loop and prompt influence. " +
+                                    $"Each request uses OpenAI credits. If no key is saved, the {AudioStudioSettings.OpenAIKeyEnv} environment variable is used.", MessageType.Info);
         }
 
         private void FfmpegSection()

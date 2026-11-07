@@ -1,0 +1,8 @@
+ElevenLabs sound effect
+prompt: A person drowning underwater, making desperate, muffled “glug, glug, glug” choking sounds. Wet throat gurgles, struggling breaths, and bubbling water. Realistic but slightly exaggerated for a casual game. 1–2 seconds. No music or background noise.
+model: eleven_text_to_sound_v3
+duration: auto
+prompt_influence: 1.00
+loop: False
+format: wav_48000
+generated: 2026-11-07 10:42:05
