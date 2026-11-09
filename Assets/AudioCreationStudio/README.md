@@ -12,6 +12,8 @@ Audio Creation Studio là một "mini DAW" chạy ngay trong Unity Editor để 
   - **ffmpeg**, chỉ cần khi xuất MP3/OGG (xem bước 4).
   - **API key ElevenLabs**, chỉ cần khi tạo âm thanh bằng AI.
 
+> **Hướng dẫn sử dụng (tiếng Anh):** [Documentation/AudioCreationStudio_Guide.html](Documentation/AudioCreationStudio_Guide.html), một trang HTML độc lập, tải về rồi mở bằng trình duyệt.
+
 ## 1. Cài package
 **Cách 1: sửa `manifest.json`.** Mở `Packages/manifest.json` trong project của bạn, thêm dòng này vào `"dependencies"`:
 

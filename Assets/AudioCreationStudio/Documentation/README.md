@@ -26,6 +26,7 @@ Unity Editor.
 
 | File | Topic |
 |---|---|
+| [AudioCreationStudio_Guide.html](AudioCreationStudio_Guide.html) | Illustrated user guide (single HTML page, open in a browser) |
 | [QuickStart.md](QuickStart.md) | Your first sound effect in 5 minutes |
 | [Architecture.md](Architecture.md) | Assemblies, layers, SOLID boundaries |
 | [AudioRecipe.md](AudioRecipe.md) | The non-destructive recipe format |
