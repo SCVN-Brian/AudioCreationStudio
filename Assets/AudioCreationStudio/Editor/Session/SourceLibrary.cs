@@ -26,7 +26,7 @@ namespace AudioCreationStudio.EditorUI
             public Hash128 Dependency;
         }
 
-        private readonly Dictionary<int, Entry> _clips = new Dictionary<int, Entry>();
+        private readonly Dictionary<AudioClip, Entry> _clips = new Dictionary<AudioClip, Entry>();
         private readonly ConcurrentDictionary<string, AudioBuffer> _generated = new ConcurrentDictionary<string, AudioBuffer>();
         private readonly ConcurrentDictionary<string, KeyValuePair<AudioBuffer, AudioBuffer>> _samples = new ConcurrentDictionary<string, KeyValuePair<AudioBuffer, AudioBuffer>>();
 
@@ -38,8 +38,8 @@ namespace AudioCreationStudio.EditorUI
             if (clip == null) { error = "Missing source AudioClip."; return false; }
             string path = AssetDatabase.GetAssetPath(clip);
             Hash128 dep = string.IsNullOrEmpty(path) ? default : AssetDatabase.GetAssetDependencyHash(path);
-            int id = clip.GetInstanceID();
-            if (_clips.TryGetValue(id, out var e) && e.Dependency == dep)
+            int id = clip.GetHashCode();
+            if (_clips.TryGetValue(clip, out var e) && e.Dependency == dep)
             {
                 buffer = e.Buffer; key = e.Key; error = e.Error;
                 return buffer != null;
@@ -56,7 +56,7 @@ namespace AudioCreationStudio.EditorUI
             if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(clip, out string guid, out long local))
                 e.Key = $"clip:{guid}:{local}:{dep}";
             else e.Key = $"clip:mem:{id}";
-            _clips[id] = e;
+            _clips[clip] = e;
             buffer = e.Buffer; key = e.Key; error = e.Error;
             return buffer != null;
         }
@@ -133,7 +133,7 @@ namespace AudioCreationStudio.EditorUI
         public void Invalidate(AudioClip clip = null)
         {
             if (clip == null) { _clips.Clear(); return; }
-            _clips.Remove(clip.GetInstanceID());
+            _clips.Remove(clip);
         }
     }
 }

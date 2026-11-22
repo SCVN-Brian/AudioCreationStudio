@@ -70,12 +70,21 @@ namespace AudioCreationStudio.EditorUI
             w._session?.Open(recipe);
         }
 
+#if UNITY_6000_3_OR_NEWER
+        [OnOpenAsset]
+        private static bool OnOpenAsset(EntityId entityId, int line)
+        {
+            if (EditorUtility.EntityIdToObject(entityId) is AudioRecipe r) { OpenRecipe(r); return true; }
+            return false;
+        }
+#else
         [OnOpenAsset]
         private static bool OnOpenAsset(int instanceId, int line)
         {
             if (EditorUtility.InstanceIDToObject(instanceId) is AudioRecipe r) { OpenRecipe(r); return true; }
             return false;
         }
+#endif
 
         private void OnEnable()
         {
