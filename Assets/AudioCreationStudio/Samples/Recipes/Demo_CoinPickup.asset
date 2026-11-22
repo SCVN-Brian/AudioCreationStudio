@@ -434,7 +434,9 @@ MonoBehaviour:
       snapToZeroCrossing: 1
       zeroSearchMs: 5
     export:
+      fileType: 0
       format: 0
+      lossyBitrateKbps: 192
       sampleRate: 0
       channels: 0
       scope: 0

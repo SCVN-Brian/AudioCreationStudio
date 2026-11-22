@@ -38,52 +38,52 @@ MonoBehaviour:
       solo: 0
       clips:
       - uid: 70f4d0f8995c
-        name: UI Click
+        name: UI Click (Random)
         sourceKind: 1
         sourceClip: {fileID: 0}
         generator:
-          presetName: UI Click
-          seed: 1
+          presetName: UI Click (Random)
+          seed: 1496875171
           waveform: 2
-          frequency: 1800
-          dutyCycle: 0.5
+          frequency: 1309.3395
+          dutyCycle: 0.43817246
           subOscMix: 0
-          durationSeconds: 0.06
+          durationSeconds: 0.057120927
           volumeDb: -6
           sampleGuid: 
           sampleName: 
           sampleStart: 0
           oneShot: 1
           attack: 0.0005
-          decay: 0.025
+          decay: 0.013554992
           sustain: 0
-          release: 0.02
-          pitchStart: 12
-          pitchEnd: 0
-          pitchSweepTime: 0.012
+          release: 0.010308428
+          pitchStart: 12.502651
+          pitchEnd: -0.41599882
+          pitchSweepTime: 0.016649831
           pitchCurve: 1
           pitchJump: 0
           pitchJumpTime: 0.1
           vibratoRate: 0
           vibratoDepth: 0
-          noiseMix: 0.25
+          noiseMix: 0.08737986
           noiseColor: 0
           noiseFm: 0
           tremoloRate: 0
           tremoloDepth: 0
           filterType: 2
-          filterCutoff: 700
+          filterCutoff: 402.5906
           filterResonance: 0.707
           filterEnvOctaves: 0
           filterLfoRate: 0
           filterLfoOctaves: 0
           drive: 0
         sourceSampleRate: 48000
-        sourceFrames: 2880
+        sourceFrames: 2742
         sourceChannels: 1
         startSample: 0
         sourceOffset: 0
-        lengthSamples: 2880
+        lengthSamples: 2742
         gainDb: 0
         pan: 0
         playbackRate: 1
@@ -108,14 +108,16 @@ MonoBehaviour:
       source: 0
       clipUid: 
       assetClip: {fileID: 0}
-      loopStart: 0
-      loopEnd: 0
+      loopStart: 288
+      loopEnd: 2592
       crossfadeSamples: 2400
       crossfadeCurve: 1
       snapToZeroCrossing: 1
       zeroSearchMs: 5
     export:
+      fileType: 0
       format: 0
+      lossyBitrateKbps: 192
       sampleRate: 0
       channels: 0
       scope: 0

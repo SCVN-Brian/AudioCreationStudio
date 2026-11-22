@@ -4,6 +4,14 @@ All notable changes to this package are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-11-22
+
+### Added
+- **HTML documentation:** `AudioCreationStudio_Guide.html` (full user guide), `AudioCreationStudio_Intro.html` (introduction) and `AudioCreationStudio_Mockup.html` (UI mockup) in `Documentation/`.
+
+### Changed
+- Demo recipes re-saved with the current export settings (`fileType`, `lossyBitrateKbps`). `Demo_UI_Click` now uses a randomized UI Click variation.
+
 ## [1.3.0] - 2026-11-07
 
 ### Added
